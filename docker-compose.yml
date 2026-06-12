@@ -6,7 +6,7 @@ services:
     container_name: zpantry_db
     environment:
       - ACCEPT_EULA=Y
-      - SA_PASSWORD=YourStrong@Passw0rd123
+      - SA_PASSWORD=#Khoa2003
     ports:
       - "1433:1433"
     volumes:
@@ -24,7 +24,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       # Cấu hình sẵn chuỗi kết nối Database trỏ sang container SQL Server
-      - ConnectionStrings__DefaultConnection=Server=database;Database=ZPantryDb;User Id=sa;Password=YourStrong@Passw0rd123;TrustServerCertificate=True;
+      - ConnectionStrings__DefaultConnection=Server=database;Database=ZPantryDb;User Id=sa;Password=#Khoa2003;TrustServerCertificate=True;
 
 volumes:
   sql_data:
