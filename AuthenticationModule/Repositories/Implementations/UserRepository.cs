@@ -1,4 +1,4 @@
-﻿using AuthenticationModule.Repositories.Entities;
+using AuthenticationModule.Repositories.Entities;
 using AuthenticationModule.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -24,6 +24,12 @@ namespace AuthenticationModule.Repositories.Implementations
         public async Task UpdateUser(User user)
         {
             _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task DeleteUser(User user)
+        {
+            _context.Users.Remove(user);
             await _context.SaveChangesAsync();
         }
 

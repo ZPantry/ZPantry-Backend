@@ -38,8 +38,14 @@ public class EmailService : IEmailService
         // Tiêu đề thư
         email.Subject = subject;
 
-        // Nội dung thư dạng HTML để hiển thị OTP cho đẹp
+        // Nội dung thư
         var builder = new BodyBuilder { HtmlBody = htmlMessage };
+        
+        // MẸO CHỐNG SPAM: Các bộ lọc thư rác (như Gmail) thường đánh dấu spam nếu email 
+        // chỉ chứa HTML mà không có phiên bản Plain Text đi kèm. 
+        // Ta dùng Regex để loại bỏ các thẻ HTML, tạo ra một bản Text thuần túy.
+        builder.TextBody = System.Text.RegularExpressions.Regex.Replace(htmlMessage, "<.*?>", string.Empty).Trim();
+        
         email.Body = builder.ToMessageBody();
 
         using var smtp = new SmtpClient();
