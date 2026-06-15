@@ -1,4 +1,4 @@
-﻿using AuthenticationModule.DTOs;
+using AuthenticationModule.DTOs;
 using AuthenticationModule.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -11,6 +11,7 @@ namespace AuthenticationModule.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [ApiExplorerSettings(GroupName = "authentication")]
     public class AuthController : ControllerBase
     {
         private readonly IUserService _userService;
