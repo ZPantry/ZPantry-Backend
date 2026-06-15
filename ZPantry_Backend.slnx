@@ -1,5 +1,4 @@
 <Solution>
-  <Project Path="Module1/Module1.csproj" />
-  <Project Path="Module2/Module2.csproj" />
+  <Project Path="AuthenticationModule/AuthenticationModule.csproj" Id="8dc316b2-e772-45c1-b06d-b2a53135749b" />
   <Project Path="ZPantry_Backend/ZPantry_Backend.csproj" />
 </Solution>
