@@ -11,5 +11,6 @@ namespace AuthenticationModule.Repositories.Interfaces
        Task UpdateUser(User user);
        Task DeleteUser(User user);
        Task<User?> GetUserByEmail(string email);
+       Task<User?> GetUserByRefreshTokenHash(string refreshTokenHash);
     }
 }

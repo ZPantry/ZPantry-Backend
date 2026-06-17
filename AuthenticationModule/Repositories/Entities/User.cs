@@ -26,4 +26,10 @@ public partial class User
     public bool IsEmailConfirmed { get; set; }
 
     public bool IsActive { get; set; }
+
+    public string Role { get; set; } = "user";
+
+    public string? RefreshTokenHash { get; set; }
+
+    public DateTime? RefreshTokenExpiresAt { get; set; }
 }

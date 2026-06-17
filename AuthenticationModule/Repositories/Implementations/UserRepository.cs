@@ -37,5 +37,10 @@ namespace AuthenticationModule.Repositories.Implementations
         {
             return await _context.Users.FirstOrDefaultAsync(us => us.Email == email);
         }
+
+        public async Task<User?> GetUserByRefreshTokenHash(string refreshTokenHash)
+        {
+            return await _context.Users.FirstOrDefaultAsync(us => us.RefreshTokenHash == refreshTokenHash);
+        }
     }
 }
