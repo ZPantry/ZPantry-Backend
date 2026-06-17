@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+namespace AuthenticationModule.DTOs;
 
-namespace AuthenticationModule.DTOs
+public class VerifyRequest
 {
-    public class VerifyRequest
-    {
-        public string OtpCode { get; set; }
+    public string OtpCode { get; set; } = string.Empty;
 
-        public string Email { get; set; }
-    }
+    public string Email { get; set; } = string.Empty;
 }

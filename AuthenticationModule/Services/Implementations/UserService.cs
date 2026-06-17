@@ -1,123 +1,286 @@
+using AuthenticationModule.DTOs;
 using AuthenticationModule.Repositories.Entities;
 using AuthenticationModule.Repositories.Interfaces;
 using AuthenticationModule.Services.Interfaces;
 using Microsoft.AspNet.Identity;
-using System;
-using System.Collections.Generic;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
-namespace AuthenticationModule.Services.Implementations
+namespace AuthenticationModule.Services.Implementations;
+
+public class UserService : IUserService
 {
-    public class UserService : IUserService
+    private readonly IUserRepository _userRepository;
+    private readonly IEmailService _emailService;
+    private readonly ITokenBlacklistService _tokenBlacklistService;
+    private readonly JwtSettings _jwtSettings;
+
+    public UserService(
+        IUserRepository userRepository,
+        IEmailService emailService,
+        ITokenBlacklistService tokenBlacklistService,
+        IOptions<JwtSettings> jwtSettings)
     {
-        private readonly IUserRepository _userRepository;
-        private readonly IEmailService _emailService;
-        public UserService(IUserRepository userRepository, IEmailService emailService)
+        _userRepository = userRepository;
+        _emailService = emailService;
+        _tokenBlacklistService = tokenBlacklistService;
+        _jwtSettings = jwtSettings.Value;
+    }
+
+    public async Task AddUser(RegisterRequest request)
+    {
+        var existingUser = await _userRepository.GetUserByEmail(request.Email);
+        if (existingUser != null)
         {
-            _userRepository = userRepository;
-            _emailService = emailService;
+            throw new Exception("Email already exists.");
         }
 
-        public async Task AddUser(RegisterRequest request)
+        var generatedOtp = Random.Shared.Next(100000, 999999).ToString();
+        var otpExpiry = DateTime.UtcNow.AddMinutes(5);
+
+        var user = new User
         {
-            // 1. Kiểm tra xem email đã được đăng ký chưa
-            var existingUser = await _userRepository.GetUserByEmail(request.Email);
-            if (existingUser != null)
-            {
-                throw new Exception("Địa chỉ email này đã được sử dụng.");
-            }
+            FullName = request.FullName,
+            Email = request.Email,
+            PasswordHashed = new PasswordHasher().HashPassword(request.Password),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = null,
+            OtpCode = generatedOtp,
+            OtpExpiredAt = otpExpiry,
+            OtpRetryCount = 0,
+            IsEmailConfirmed = false,
+            IsActive = true,
+            Role = "user"
+        };
 
-            // 2. Sinh mã OTP ngẫu nhiên gồm 6 chữ số
-            string generatedOtp = new Random().Next(100000, 999999).ToString();
+        await _userRepository.AddUser(user);
 
-            // 2. Thiết lập thời gian hết hạn cho OTP (Ví dụ: 5 phút tính từ hiện tại)
-            DateTime otpExpiry = DateTime.Now.AddMinutes(5);
-            
-            var user = new User{
-                FullName = request.FullName,
-                Email = request.Email,
-                PasswordHashed = new PasswordHasher().HashPassword(request.Password),
-                CreatedAt = DateTime.Now,
-                UpdatedAt = null,
-                OtpCode = generatedOtp,
-                OtpExpiredAt = otpExpiry,
-                OtpRetryCount = 0,
-                IsEmailConfirmed = false,
-                IsActive = true
-            };
-            await _userRepository.AddUser(user);
-
-            // Tiêu đề cụ thể và rõ ràng hơn để tránh bộ lọc Spam
-            string subject = $"[{generatedOtp}] Mã Xác Thực Tài Khoản ZPantry Của Bạn";
-            
-            // Bổ sung đoạn Footer giải thích lý do nhận mail (Rất quan trọng để bypass Spam filter)
-            string htmlBody = $@"
+        var subject = $"[{generatedOtp}] ZPantry account verification code";
+        var htmlBody = $@"
             <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>
-                <h2 style='color: #4CAF50; text-align: center;'>Xác Thực Tài Khoản ZPantry</h2>
-                <p>Chào bạn <b>{user.FullName}</b>,</p>
-                <p>Cảm ơn bạn đã đăng ký thành viên tại ZPantry. Mã OTP để kích hoạt tài khoản của bạn là:</p>
+                <h2 style='color: #4CAF50; text-align: center;'>ZPantry account verification</h2>
+                <p>Hello <b>{user.FullName}</b>,</p>
+                <p>Your OTP code is:</p>
                 <div style='text-align: center; margin: 30px 0;'>
                     <span style='background-color: #f4f4f4; padding: 10px 20px; font-size: 24px; font-weight: bold; letter-spacing: 5px; border: 1px dashed #4CAF50; color: #333;'>
                         {generatedOtp}
                     </span>
                 </div>
-                <p style='color: #ff0000; font-size: 13px;'>* Mã OTP này có hiệu lực trong vòng 5 phút. Vui lòng không chia sẻ mã này cho bất kỳ ai.</p>
-                <br/>
-                <p>Trân trọng,<br/><b>Đội ngũ ZPantry</b></p>
-                <hr style='border: none; border-top: 1px solid #eee; margin-top: 20px;' />
-                <div style='color: #888; font-size: 11px; text-align: center;'>
-                    <p>Bạn nhận được email này vì địa chỉ email của bạn đã được sử dụng để đăng ký tài khoản tại hệ thống ZPantry.</p>
-                    <p>Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này. Tài khoản sẽ không được kích hoạt.</p>
-                </div>
+                <p style='color: #ff0000; font-size: 13px;'>* This code is valid for 5 minutes.</p>
             </div>";
-            try
-            {
-                await _emailService.SendEmailAsync(user.Email, subject, htmlBody);
-            }
-            catch (Exception ex)
-            {
-                // Nếu gửi mail bị lỗi, tiến hành xóa bản ghi User vừa tạo để rollback dữ liệu
-                await _userRepository.DeleteUser(user);
-                throw new Exception($"Không thể gửi email OTP. Vui lòng kiểm tra lại địa chỉ email hoặc thử lại sau. Lỗi chi tiết: {ex.Message}");
-            }
-        }
 
-        public async Task<bool> VerifyOtp(string email, string otpCode)
+        try
         {
-            // 1. Tìm kiếm User trong Database dựa vào Email
-            // (Bạn lưu ý kiểm tra xem tầng Repository của bạn đã có hàm tương tự như GetUserByEmail chưa nhé)
-            var user = await _userRepository.GetUserByEmail(email);
-
-            // Nếu không tìm thấy User, trả về false ngay lập tức
-            if (user == null) return false;
-
-            // 2. Kiểm tra xem tài khoản này đã được xác thực từ trước chưa (để tránh xử lý thừa)
-            if (user.IsEmailConfirmed) return false;
-
-            // 3. Kiểm tra xem mã OTP người dùng nhập vào có khớp với mã lưu trong DB không
-            if (user.OtpCode != otpCode)
-            {
-                // Bạn có thể mở rộng thêm logic đếm số lần nhập sai ở đây nếu cần: user.OtpRetryCount++;
-                return false;
-            }
-
-            // 4. Kiểm tra xem mã OTP đã bị hết hạn chưa (quá 5 phút kể từ lúc sinh mã)
-            if (user.OtpExpiredAt < DateTime.Now)
-            {
-                return false; // OTP đã hết hạn
-            }
-
-            // 5. Nếu vượt qua tất cả các điều kiện trên -> Mã OTP hoàn toàn hợp lệ!
-            user.IsEmailConfirmed = true;   // Kích hoạt trạng thái đã xác thực
-            user.OtpCode = null;            // Xóa mã OTP cũ đi để bảo mật
-            user.OtpExpiredAt = null;       // Xóa thời gian hết hạn của OTP cũ
-            user.UpdatedAt = DateTime.Now;
-
-            // 6. Cập nhật lại thông tin User đã thay đổi xuống Database
-            // (Bạn kiểm tra xem Repository đã có hàm UpdateUser chưa nha)
-            await _userRepository.UpdateUser(user);
-
-            return true; // Xác thực thành công!
+            await _emailService.SendEmailAsync(user.Email, subject, htmlBody);
         }
+        catch (Exception ex)
+        {
+            await _userRepository.DeleteUser(user);
+            throw new Exception($"Could not send OTP email. Details: {ex.Message}");
+        }
+    }
+
+    public async Task<bool> VerifyOtp(string email, string otpCode)
+    {
+        var user = await _userRepository.GetUserByEmail(email);
+        if (user == null || user.IsEmailConfirmed)
+        {
+            return false;
+        }
+
+        if (user.OtpCode != otpCode || user.OtpExpiredAt == null || user.OtpExpiredAt < DateTime.UtcNow)
+        {
+            return false;
+        }
+
+        user.IsEmailConfirmed = true;
+        user.OtpCode = null;
+        user.OtpExpiredAt = null;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await _userRepository.UpdateUser(user);
+        return true;
+    }
+
+    public async Task<AuthResponse> LoginAsync(LoginRequest request)
+    {
+        var user = await _userRepository.GetUserByEmail(request.Email);
+        if (user == null)
+        {
+            throw new UnauthorizedAccessException("Invalid email or password.");
+        }
+
+        if (!user.IsActive)
+        {
+            throw new UnauthorizedAccessException("Account is inactive.");
+        }
+
+        if (!user.IsEmailConfirmed)
+        {
+            throw new UnauthorizedAccessException("Account is not verified yet.");
+        }
+
+        var verifyResult = new PasswordHasher().VerifyHashedPassword(user.PasswordHashed, request.Password);
+        if (verifyResult == PasswordVerificationResult.Failed)
+        {
+            throw new UnauthorizedAccessException("Invalid email or password.");
+        }
+
+        return await IssueTokensAsync(user, rotateRefreshToken: true);
+    }
+
+    public async Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.RefreshToken))
+        {
+            throw new UnauthorizedAccessException("Refresh token is required.");
+        }
+
+        var refreshTokenHash = HashRefreshToken(request.RefreshToken);
+        var user = await _userRepository.GetUserByRefreshTokenHash(refreshTokenHash);
+        if (user == null)
+        {
+            throw new UnauthorizedAccessException("Invalid refresh token.");
+        }
+
+        if (!user.IsActive || !user.IsEmailConfirmed)
+        {
+            throw new UnauthorizedAccessException("Account is not allowed to refresh token.");
+        }
+
+        if (user.RefreshTokenExpiresAt == null || user.RefreshTokenExpiresAt <= DateTime.UtcNow)
+        {
+            user.RefreshTokenHash = null;
+            user.RefreshTokenExpiresAt = null;
+            await _userRepository.UpdateUser(user);
+            throw new UnauthorizedAccessException("Refresh token has expired.");
+        }
+
+        return await IssueTokensAsync(user, rotateRefreshToken: true);
+    }
+
+    public async Task LogoutAsync(string token)
+    {
+        try
+        {
+            var handler = new JwtSecurityTokenHandler();
+            var jwtToken = handler.ReadJwtToken(token);
+
+            var jti = jwtToken.Claims.FirstOrDefault(claim => claim.Type == JwtRegisteredClaimNames.Jti)?.Value;
+            var email = jwtToken.Claims.FirstOrDefault(claim => claim.Type == JwtRegisteredClaimNames.Email)?.Value
+                ?? jwtToken.Claims.FirstOrDefault(claim => claim.Type == ClaimTypes.Email)?.Value
+                ?? jwtToken.Claims.FirstOrDefault(claim => claim.Type == ClaimTypes.Name)?.Value;
+
+            if (string.IsNullOrWhiteSpace(jti) || string.IsNullOrWhiteSpace(email))
+            {
+                throw new UnauthorizedAccessException("Token is invalid.");
+            }
+
+            var user = await _userRepository.GetUserByEmail(email);
+            if (user != null)
+            {
+                user.RefreshTokenHash = null;
+                user.RefreshTokenExpiresAt = null;
+                user.UpdatedAt = DateTime.UtcNow;
+                await _userRepository.UpdateUser(user);
+            }
+
+            var expiresAt = jwtToken.ValidTo == DateTime.MinValue
+                ? DateTimeOffset.UtcNow.AddMinutes(_jwtSettings.AccessTokenMinutes)
+                : new DateTimeOffset(DateTime.SpecifyKind(jwtToken.ValidTo, DateTimeKind.Utc));
+
+            await _tokenBlacklistService.RevokeAsync(jti, expiresAt);
+        }
+        catch (Exception ex) when (ex is not UnauthorizedAccessException)
+        {
+            throw new UnauthorizedAccessException("Invalid token.");
+        }
+    }
+
+    private async Task<AuthResponse> IssueTokensAsync(User user, bool rotateRefreshToken)
+    {
+        var accessToken = CreateAccessToken(user);
+
+        string refreshToken;
+        if (rotateRefreshToken || string.IsNullOrWhiteSpace(user.RefreshTokenHash))
+        {
+            refreshToken = GenerateRefreshToken();
+            user.RefreshTokenHash = HashRefreshToken(refreshToken);
+            user.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenDays);
+        }
+        else
+        {
+            refreshToken = string.Empty;
+        }
+
+        user.UpdatedAt = DateTime.UtcNow;
+        await _userRepository.UpdateUser(user);
+
+        return new AuthResponse
+        {
+            AccessToken = accessToken,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenMinutes),
+            UserId = user.Id,
+            FullName = user.FullName ?? string.Empty,
+            Email = user.Email,
+            RefreshToken = refreshToken,
+            Role = user.Role
+        };
+    }
+
+    private string CreateAccessToken(User user)
+    {
+        if (string.IsNullOrWhiteSpace(_jwtSettings.SecretKey))
+        {
+            throw new InvalidOperationException("JWT SecretKey is missing.");
+        }
+
+        var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
+        var credentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
+        var expiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenMinutes);
+        var jti = Guid.NewGuid().ToString("N");
+        var role = string.IsNullOrWhiteSpace(user.Role) ? "user" : user.Role.Trim().ToLowerInvariant();
+
+        var claims = new List<Claim>
+        {
+            new(JwtRegisteredClaimNames.Sub, user.Email),
+            new(JwtRegisteredClaimNames.Email, user.Email),
+            new(JwtRegisteredClaimNames.Jti, jti),
+            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new(ClaimTypes.Name, user.FullName ?? string.Empty),
+            new("fullName", user.FullName ?? string.Empty),
+            new("isEmailConfirmed", user.IsEmailConfirmed.ToString().ToLowerInvariant()),
+            new(ClaimTypes.Role, role),
+            new("role", role)
+        };
+
+        var token = new JwtSecurityToken(
+            issuer: string.IsNullOrWhiteSpace(_jwtSettings.Issuer) ? null : _jwtSettings.Issuer,
+            audience: string.IsNullOrWhiteSpace(_jwtSettings.Audience) ? null : _jwtSettings.Audience,
+            claims: claims,
+            notBefore: DateTime.UtcNow,
+            expires: expiresAt,
+            signingCredentials: credentials);
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private static string GenerateRefreshToken()
+    {
+        var bytes = RandomNumberGenerator.GetBytes(64);
+        return Convert.ToBase64String(bytes)
+            .Replace("+", "-")
+            .Replace("/", "_")
+            .TrimEnd('=');
+    }
+
+    private static string HashRefreshToken(string refreshToken)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken));
+        return Convert.ToHexString(bytes);
     }
 }

@@ -55,6 +55,13 @@ public partial class ZpantryDbContext : DbContext
             entity.Property(e => e.PasswordHashed)
                 .HasMaxLength(500)
                 .IsUnicode(false);
+            entity.Property(e => e.Role)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasDefaultValue("user");
+            entity.Property(e => e.RefreshTokenHash)
+                .HasMaxLength(128)
+                .IsUnicode(false);
         });
 
         OnModelCreatingPartial(modelBuilder);

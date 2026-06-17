@@ -4,3 +4,41 @@ GET {{ZPantry_Backend_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+POST {{ZPantry_Backend_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "email@example.com",
+  "password": "password"
+}
+
+###
+
+POST {{ZPantry_Backend_HostAddress}}/api/auth/refresh-token
+Content-Type: application/json
+
+{
+  "refreshToken": "your-refresh-token-here"
+}
+
+###
+
+POST {{ZPantry_Backend_HostAddress}}/api/auth/logout
+Authorization: Bearer {{token}}
+
+###
+
+GET {{ZPantry_Backend_HostAddress}}/api/demo/public
+
+###
+
+GET {{ZPantry_Backend_HostAddress}}/api/demo/admin-report
+Authorization: Bearer {{admin_token}}
+
+###
+
+POST {{ZPantry_Backend_HostAddress}}/api/demo/admin-sync
+Authorization: Bearer {{admin_token}}
+
+###
