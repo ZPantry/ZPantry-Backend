@@ -6,11 +6,18 @@ services:
     container_name: zpantry_db
     environment:
       - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=#Khoa2003
       - SA_PASSWORD=#Khoa2003
     ports:
       - "1433:1433"
     volumes:
       - sql_data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P '#Khoa2003' -Q 'SELECT 1' || /opt/mssql-tools/bin/sqlcmd -C -S localhost -U sa -P '#Khoa2003' -Q 'SELECT 1'"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
 
   backend:
     container_name: zpantry_api
@@ -20,10 +27,10 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - database
+      database:
+        condition: service_healthy
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      # Cấu hình sẵn chuỗi kết nối Database trỏ sang container SQL Server
       - ConnectionStrings__DefaultConnection=Server=database;Database=ZPantryDb;User Id=sa;Password=#Khoa2003;TrustServerCertificate=True;
 
 volumes:
