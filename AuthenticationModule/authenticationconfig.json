@@ -1,0 +1,26 @@
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "server=(local); database=ZPantryDb; uid=sa; pwd=12345; TrustServerCertificate=True;"
+  },
+  "EmailSettings": "Gmail",
+  "Gmail": {
+    "EmailAddress": "zpantry2026@gmail.com",
+    "DisplayName": "ZPantry",
+    "Password": "hcuhcofmqmnizqra", 
+    "Host": "smtp.gmail.com",
+    "Port": 587,
+    "EnableSSL": true
+  },
+  "Jwt": {
+    "Issuer": "ZPantry",
+    "Audience": "ZPantryClient",
+    "SecretKey": "CHANGE_THIS_TO_A_LONG_RANDOM_DEV_SECRET_32_PLUS_CHARS",
+    "AccessTokenMinutes": 60,
+    "RefreshTokenDays": 7
+  },
+  "BootstrapAdmin": {
+    "Email": "admin@admin.com",
+    "Password": "Admin@123",
+    "FullName": "Admin"
+  }
+}

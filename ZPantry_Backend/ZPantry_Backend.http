@@ -1,6 +1,0 @@
-@ZPantry_Backend_HostAddress = http://localhost:5207
-
-GET {{ZPantry_Backend_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

@@ -13,9 +13,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["ZPantry_Backend/ZPantry_Backend.csproj", "ZPantry_Backend/"]
-COPY ["Shared/Shared.csproj", "Shared/"]
-COPY ["Module1/Module1.csproj", "Module1/"]
-COPY ["Module2/Module2.csproj", "Module2/"]
+COPY ["AuthenticationModule/AuthenticationModule.csproj", "AuthenticationModule/"]
 RUN dotnet restore "./ZPantry_Backend/ZPantry_Backend.csproj"
 COPY . .
 WORKDIR "/src/ZPantry_Backend"
