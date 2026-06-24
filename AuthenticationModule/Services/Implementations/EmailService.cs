@@ -8,10 +8,10 @@ using Org.BouncyCastle.Security;
 
 public class EmailSettings
 {
-    public string EmailAddress { get; set; } // Địa chỉ email gửi đi
-    public string DisplayName { get; set; } // Tên hiển thị khi gửi email
-    public string Password { get; set; }
-    public string Host { get; set; } // SMTP server (ví dụ: smtp.gmail.com)
+    public string EmailAddress { get; set; } = string.Empty; // Địa chỉ email gửi đi
+    public string DisplayName { get; set; } = string.Empty; // Tên hiển thị khi gửi email
+    public string Password { get; set; } = string.Empty;
+    public string Host { get; set; } = string.Empty; // SMTP server (ví dụ: smtp.gmail.com)
     public int Port { get; set; } // Port SMTP (ví dụ: 587 cho STARTTLS)
     public bool EnableSsl { get; set; }
 }

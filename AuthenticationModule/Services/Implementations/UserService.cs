@@ -2,7 +2,7 @@ using AuthenticationModule.DTOs;
 using AuthenticationModule.Repositories.Entities;
 using AuthenticationModule.Repositories.Interfaces;
 using AuthenticationModule.Services.Interfaces;
-using Microsoft.AspNet.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -46,7 +46,7 @@ public class UserService : IUserService
         {
             FullName = request.FullName,
             Email = request.Email,
-            PasswordHashed = new PasswordHasher().HashPassword(request.Password),
+            PasswordHashed = new PasswordHasher<User>().HashPassword(null!, request.Password),
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = null,
             OtpCode = generatedOtp,
@@ -124,7 +124,7 @@ public class UserService : IUserService
             throw new UnauthorizedAccessException("Account is not verified yet.");
         }
 
-        var verifyResult = new PasswordHasher().VerifyHashedPassword(user.PasswordHashed, request.Password);
+        var verifyResult = new PasswordHasher<User>().VerifyHashedPassword(user, user.PasswordHashed, request.Password);
         if (verifyResult == PasswordVerificationResult.Failed)
         {
             throw new UnauthorizedAccessException("Invalid email or password.");

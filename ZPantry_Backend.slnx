@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="AuthenticationModule/AuthenticationModule.csproj" Id="8dc316b2-e772-45c1-b06d-b2a53135749b" />
+  <Project Path="CuisineModule/CuisineModule.csproj" Id="2fd2507b-aa67-49a1-baf1-da75073af9d4" />
   <Project Path="ZPantry_Backend/ZPantry_Backend.csproj" />
 </Solution>

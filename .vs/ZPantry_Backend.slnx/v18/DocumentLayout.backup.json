@@ -3,12 +3,72 @@
   "WorkspaceRootPath": "D:\\Proj\\ZPantry-Backend\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{8DC316B2-E772-45C1-B06D-B2A53135749B}|AuthenticationModule\\AuthenticationModule.csproj|d:\\proj\\zpantry-backend\\authenticationmodule\\repositories\\interfaces\\iuserrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{8DC316B2-E772-45C1-B06D-B2A53135749B}|AuthenticationModule\\AuthenticationModule.csproj|solutionrelative:authenticationmodule\\repositories\\interfaces\\iuserrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{2FD2507B-AA67-49A1-BAF1-DA75073AF9D4}|CuisineModule\\CuisineModule.csproj|d:\\proj\\zpantry-backend\\cuisinemodule\\cuisinemodule.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{2FD2507B-AA67-49A1-BAF1-DA75073AF9D4}|CuisineModule\\CuisineModule.csproj|solutionrelative:cuisinemodule\\cuisinemodule.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8DC316B2-E772-45C1-B06D-B2A53135749B}|AuthenticationModule\\AuthenticationModule.csproj|d:\\proj\\zpantry-backend\\authenticationmodule\\authenticationconfig.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{8DC316B2-E772-45C1-B06D-B2A53135749B}|AuthenticationModule\\AuthenticationModule.csproj|solutionrelative:authenticationmodule\\authenticationconfig.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2FD2507B-AA67-49A1-BAF1-DA75073AF9D4}|CuisineModule\\CuisineModule.csproj|d:\\proj\\zpantry-backend\\cuisinemodule\\repositories\\implementations\\ingredientrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{2FD2507B-AA67-49A1-BAF1-DA75073AF9D4}|CuisineModule\\CuisineModule.csproj|solutionrelative:cuisinemodule\\repositories\\implementations\\ingredientrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2FD2507B-AA67-49A1-BAF1-DA75073AF9D4}|CuisineModule\\CuisineModule.csproj|d:\\proj\\zpantry-backend\\cuisinemodule\\services\\implementations\\ingredientservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{2FD2507B-AA67-49A1-BAF1-DA75073AF9D4}|CuisineModule\\CuisineModule.csproj|solutionrelative:cuisinemodule\\services\\implementations\\ingredientservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2FD2507B-AA67-49A1-BAF1-DA75073AF9D4}|CuisineModule\\CuisineModule.csproj|d:\\proj\\zpantry-backend\\cuisinemodule\\services\\interfaces\\iingredientservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{2FD2507B-AA67-49A1-BAF1-DA75073AF9D4}|CuisineModule\\CuisineModule.csproj|solutionrelative:cuisinemodule\\services\\interfaces\\iingredientservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2FD2507B-AA67-49A1-BAF1-DA75073AF9D4}|CuisineModule\\CuisineModule.csproj|d:\\proj\\zpantry-backend\\cuisinemodule\\repositories\\interfaces\\iingredientrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{2FD2507B-AA67-49A1-BAF1-DA75073AF9D4}|CuisineModule\\CuisineModule.csproj|solutionrelative:cuisinemodule\\repositories\\interfaces\\iingredientrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2FD2507B-AA67-49A1-BAF1-DA75073AF9D4}|CuisineModule\\CuisineModule.csproj|d:\\proj\\zpantry-backend\\cuisinemodule\\cuisineconfig.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{2FD2507B-AA67-49A1-BAF1-DA75073AF9D4}|CuisineModule\\CuisineModule.csproj|solutionrelative:cuisinemodule\\cuisineconfig.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2FD2507B-AA67-49A1-BAF1-DA75073AF9D4}|CuisineModule\\CuisineModule.csproj|d:\\proj\\zpantry-backend\\cuisinemodule\\controllers\\ingredientcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{2FD2507B-AA67-49A1-BAF1-DA75073AF9D4}|CuisineModule\\CuisineModule.csproj|solutionrelative:cuisinemodule\\controllers\\ingredientcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8DC316B2-E772-45C1-B06D-B2A53135749B}|AuthenticationModule\\AuthenticationModule.csproj|d:\\proj\\zpantry-backend\\authenticationmodule\\controllers\\authcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8DC316B2-E772-45C1-B06D-B2A53135749B}|AuthenticationModule\\AuthenticationModule.csproj|solutionrelative:authenticationmodule\\controllers\\authcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2FD2507B-AA67-49A1-BAF1-DA75073AF9D4}|CuisineModule\\CuisineModule.csproj|d:\\proj\\zpantry-backend\\cuisinemodule\\dtos\\ingredientrequest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{2FD2507B-AA67-49A1-BAF1-DA75073AF9D4}|CuisineModule\\CuisineModule.csproj|solutionrelative:cuisinemodule\\dtos\\ingredientrequest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8DC316B2-E772-45C1-B06D-B2A53135749B}|AuthenticationModule\\AuthenticationModule.csproj|d:\\proj\\zpantry-backend\\authenticationmodule\\services\\implementations\\userservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8DC316B2-E772-45C1-B06D-B2A53135749B}|AuthenticationModule\\AuthenticationModule.csproj|solutionrelative:authenticationmodule\\services\\implementations\\userservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8DC316B2-E772-45C1-B06D-B2A53135749B}|AuthenticationModule\\AuthenticationModule.csproj|d:\\proj\\zpantry-backend\\authenticationmodule\\dtos\\verifyrequest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8DC316B2-E772-45C1-B06D-B2A53135749B}|AuthenticationModule\\AuthenticationModule.csproj|solutionrelative:authenticationmodule\\dtos\\verifyrequest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8DC316B2-E772-45C1-B06D-B2A53135749B}|AuthenticationModule\\AuthenticationModule.csproj|d:\\proj\\zpantry-backend\\authenticationmodule\\dtos\\registerrequest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8DC316B2-E772-45C1-B06D-B2A53135749B}|AuthenticationModule\\AuthenticationModule.csproj|solutionrelative:authenticationmodule\\dtos\\registerrequest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8DC316B2-E772-45C1-B06D-B2A53135749B}|AuthenticationModule\\AuthenticationModule.csproj|d:\\proj\\zpantry-backend\\authenticationmodule\\services\\implementations\\emailservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8DC316B2-E772-45C1-B06D-B2A53135749B}|AuthenticationModule\\AuthenticationModule.csproj|solutionrelative:authenticationmodule\\services\\implementations\\emailservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8DC316B2-E772-45C1-B06D-B2A53135749B}|AuthenticationModule\\AuthenticationModule.csproj|d:\\proj\\zpantry-backend\\authenticationmodule\\services\\interfaces\\iuserservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8DC316B2-E772-45C1-B06D-B2A53135749B}|AuthenticationModule\\AuthenticationModule.csproj|solutionrelative:authenticationmodule\\services\\interfaces\\iuserservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{8DC316B2-E772-45C1-B06D-B2A53135749B}|AuthenticationModule\\AuthenticationModule.csproj|d:\\proj\\zpantry-backend\\authenticationmodule\\repositories\\implementations\\userrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{8DC316B2-E772-45C1-B06D-B2A53135749B}|AuthenticationModule\\AuthenticationModule.csproj|solutionrelative:authenticationmodule\\repositories\\implementations\\userrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8DC316B2-E772-45C1-B06D-B2A53135749B}|AuthenticationModule\\AuthenticationModule.csproj|d:\\proj\\zpantry-backend\\authenticationmodule\\repositories\\interfaces\\iuserrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8DC316B2-E772-45C1-B06D-B2A53135749B}|AuthenticationModule\\AuthenticationModule.csproj|solutionrelative:authenticationmodule\\repositories\\interfaces\\iuserrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{8DC316B2-E772-45C1-B06D-B2A53135749B}|AuthenticationModule\\AuthenticationModule.csproj|d:\\proj\\zpantry-backend\\authenticationmodule\\repositories\\entities\\zpantrydbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -19,20 +79,8 @@
       "RelativeMoniker": "D:0:0:{8DC316B2-E772-45C1-B06D-B2A53135749B}|AuthenticationModule\\AuthenticationModule.csproj|solutionrelative:authenticationmodule\\authenticationmodule.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{8DC316B2-E772-45C1-B06D-B2A53135749B}|AuthenticationModule\\AuthenticationModule.csproj|d:\\proj\\zpantry-backend\\authenticationmodule\\dtos\\registerrequest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{8DC316B2-E772-45C1-B06D-B2A53135749B}|AuthenticationModule\\AuthenticationModule.csproj|solutionrelative:authenticationmodule\\dtos\\registerrequest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{8DC316B2-E772-45C1-B06D-B2A53135749B}|AuthenticationModule\\AuthenticationModule.csproj|d:\\proj\\zpantry-backend\\authenticationmodule\\services\\interfaces\\iuserservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{8DC316B2-E772-45C1-B06D-B2A53135749B}|AuthenticationModule\\AuthenticationModule.csproj|solutionrelative:authenticationmodule\\services\\interfaces\\iuserservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{8DC316B2-E772-45C1-B06D-B2A53135749B}|AuthenticationModule\\AuthenticationModule.csproj|d:\\proj\\zpantry-backend\\authenticationmodule\\authenticationconfig.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
-      "RelativeMoniker": "D:0:0:{8DC316B2-E772-45C1-B06D-B2A53135749B}|AuthenticationModule\\AuthenticationModule.csproj|solutionrelative:authenticationmodule\\authenticationconfig.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{8DC316B2-E772-45C1-B06D-B2A53135749B}|AuthenticationModule\\AuthenticationModule.csproj|d:\\proj\\zpantry-backend\\authenticationmodule\\services\\implementations\\userservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{8DC316B2-E772-45C1-B06D-B2A53135749B}|AuthenticationModule\\AuthenticationModule.csproj|solutionrelative:authenticationmodule\\services\\implementations\\userservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Proj\\ZPantry-Backend\\CuisineModule\\Class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:CuisineModule\\Class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -42,89 +90,72 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 2,
+          "SelectedChildIndex": 4,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "ZpantryDbContext.cs",
-              "DocumentMoniker": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\Repositories\\Entities\\ZpantryDbContext.cs",
-              "RelativeDocumentMoniker": "AuthenticationModule\\Repositories\\Entities\\ZpantryDbContext.cs",
-              "ToolTip": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\Repositories\\Entities\\ZpantryDbContext.cs",
-              "RelativeToolTip": "AuthenticationModule\\Repositories\\Entities\\ZpantryDbContext.cs",
-              "ViewState": "AgIAABIAAAAAAAAAAAA+wBYAAAA8AAAAAAAAAA==",
+              "DocumentIndex": 7,
+              "Title": "IngredientController.cs",
+              "DocumentMoniker": "D:\\Proj\\ZPantry-Backend\\CuisineModule\\Controllers\\IngredientController.cs",
+              "RelativeDocumentMoniker": "CuisineModule\\Controllers\\IngredientController.cs",
+              "ToolTip": "D:\\Proj\\ZPantry-Backend\\CuisineModule\\Controllers\\IngredientController.cs",
+              "RelativeToolTip": "CuisineModule\\Controllers\\IngredientController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACEAAAAxAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-06-14T08:32:18.436Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-24T08:26:46.418Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "cuisineconfig.json",
+              "DocumentMoniker": "D:\\Proj\\ZPantry-Backend\\CuisineModule\\cuisineconfig.json",
+              "RelativeDocumentMoniker": "CuisineModule\\cuisineconfig.json",
+              "ToolTip": "D:\\Proj\\ZPantry-Backend\\CuisineModule\\cuisineconfig.json",
+              "RelativeToolTip": "CuisineModule\\cuisineconfig.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-06-24T08:17:55.714Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 5,
-              "Title": "IUserService.cs",
-              "DocumentMoniker": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\Services\\Interfaces\\IUserService.cs",
-              "RelativeDocumentMoniker": "AuthenticationModule\\Services\\Interfaces\\IUserService.cs",
-              "ToolTip": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\Services\\Interfaces\\IUserService.cs",
-              "RelativeToolTip": "AuthenticationModule\\Services\\Interfaces\\IUserService.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAEAAAAAAAAAA==",
+              "Title": "IIngredientRepository.cs",
+              "DocumentMoniker": "D:\\Proj\\ZPantry-Backend\\CuisineModule\\Repositories\\Interfaces\\IIngredientRepository.cs",
+              "RelativeDocumentMoniker": "CuisineModule\\Repositories\\Interfaces\\IIngredientRepository.cs",
+              "ToolTip": "D:\\Proj\\ZPantry-Backend\\CuisineModule\\Repositories\\Interfaces\\IIngredientRepository.cs",
+              "RelativeToolTip": "CuisineModule\\Repositories\\Interfaces\\IIngredientRepository.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-06-14T10:30:40.752Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-24T08:15:36.706Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "IngredientRepository.cs",
+              "DocumentMoniker": "D:\\Proj\\ZPantry-Backend\\CuisineModule\\Repositories\\Implementations\\IngredientRepository.cs",
+              "RelativeDocumentMoniker": "CuisineModule\\Repositories\\Implementations\\IngredientRepository.cs",
+              "ToolTip": "D:\\Proj\\ZPantry-Backend\\CuisineModule\\Repositories\\Implementations\\IngredientRepository.cs",
+              "RelativeToolTip": "CuisineModule\\Repositories\\Implementations\\IngredientRepository.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAIAAAAQAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-24T08:15:43.935Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "IUserRepository.cs",
-              "DocumentMoniker": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\Repositories\\Interfaces\\IUserRepository.cs",
-              "RelativeDocumentMoniker": "AuthenticationModule\\Repositories\\Interfaces\\IUserRepository.cs",
-              "ToolTip": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\Repositories\\Interfaces\\IUserRepository.cs",
-              "RelativeToolTip": "AuthenticationModule\\Repositories\\Interfaces\\IUserRepository.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAOAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-06-14T08:43:51.403Z",
+              "Title": "CuisineModule.csproj",
+              "DocumentMoniker": "D:\\Proj\\ZPantry-Backend\\CuisineModule\\CuisineModule.csproj",
+              "RelativeDocumentMoniker": "CuisineModule\\CuisineModule.csproj",
+              "ToolTip": "D:\\Proj\\ZPantry-Backend\\CuisineModule\\CuisineModule.csproj",
+              "RelativeToolTip": "CuisineModule\\CuisineModule.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-06-24T02:41:38.115Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 1,
-              "Title": "UserRepository.cs",
-              "DocumentMoniker": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\Repositories\\Implementations\\UserRepository.cs",
-              "RelativeDocumentMoniker": "AuthenticationModule\\Repositories\\Implementations\\UserRepository.cs",
-              "ToolTip": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\Repositories\\Implementations\\UserRepository.cs",
-              "RelativeToolTip": "AuthenticationModule\\Repositories\\Implementations\\UserRepository.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAAZAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-06-14T08:45:13.428Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "RegisterRequest.cs",
-              "DocumentMoniker": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\DTOs\\RegisterRequest.cs",
-              "RelativeDocumentMoniker": "AuthenticationModule\\DTOs\\RegisterRequest.cs",
-              "ToolTip": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\DTOs\\RegisterRequest.cs",
-              "RelativeToolTip": "AuthenticationModule\\DTOs\\RegisterRequest.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAuwAUAAAABAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-06-14T08:41:06.21Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "AuthenticationModule.csproj",
-              "DocumentMoniker": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\AuthenticationModule.csproj",
-              "RelativeDocumentMoniker": "AuthenticationModule\\AuthenticationModule.csproj",
-              "ToolTip": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\AuthenticationModule.csproj",
-              "RelativeToolTip": "AuthenticationModule\\AuthenticationModule.csproj",
-              "ViewState": "AgIAACQAAAAAAAAAAAAAAB8AAAA7AAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2026-06-14T08:25:15.222Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 6,
               "Title": "authenticationconfig.json",
               "DocumentMoniker": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\authenticationconfig.json",
               "RelativeDocumentMoniker": "AuthenticationModule\\authenticationconfig.json",
@@ -132,21 +163,175 @@
               "RelativeToolTip": "AuthenticationModule\\authenticationconfig.json",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAdAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2026-06-14T08:33:42.868Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-14T08:33:42.868Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 4,
+              "Title": "IIngredientService.cs",
+              "DocumentMoniker": "D:\\Proj\\ZPantry-Backend\\CuisineModule\\Services\\Interfaces\\IIngredientService.cs",
+              "RelativeDocumentMoniker": "CuisineModule\\Services\\Interfaces\\IIngredientService.cs",
+              "ToolTip": "D:\\Proj\\ZPantry-Backend\\CuisineModule\\Services\\Interfaces\\IIngredientService.cs",
+              "RelativeToolTip": "CuisineModule\\Services\\Interfaces\\IIngredientService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAAwAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-24T08:18:00.813Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "IngredientService.cs",
+              "DocumentMoniker": "D:\\Proj\\ZPantry-Backend\\CuisineModule\\Services\\Implementations\\IngredientService.cs",
+              "RelativeDocumentMoniker": "CuisineModule\\Services\\Implementations\\IngredientService.cs",
+              "ToolTip": "D:\\Proj\\ZPantry-Backend\\CuisineModule\\Services\\Implementations\\IngredientService.cs",
+              "RelativeToolTip": "CuisineModule\\Services\\Implementations\\IngredientService.cs",
+              "ViewState": "AgIAACIAAAAAAAAAAAAkwAEAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-24T08:18:14.492Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "AuthController.cs",
+              "DocumentMoniker": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\Controllers\\AuthController.cs",
+              "RelativeDocumentMoniker": "AuthenticationModule\\Controllers\\AuthController.cs",
+              "ToolTip": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\Controllers\\AuthController.cs",
+              "RelativeToolTip": "AuthenticationModule\\Controllers\\AuthController.cs",
+              "ViewState": "AgIAAF4AAAAAAAAAAAAgwAQAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-15T03:57:33.366Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "IngredientRequest.cs",
+              "DocumentMoniker": "D:\\Proj\\ZPantry-Backend\\CuisineModule\\DTOs\\IngredientRequest.cs",
+              "RelativeDocumentMoniker": "CuisineModule\\DTOs\\IngredientRequest.cs",
+              "ToolTip": "D:\\Proj\\ZPantry-Backend\\CuisineModule\\DTOs\\IngredientRequest.cs",
+              "RelativeToolTip": "CuisineModule\\DTOs\\IngredientRequest.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAMAAAA+AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-24T08:15:15.806Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 19,
+              "Title": "Class1.cs",
+              "DocumentMoniker": "D:\\Proj\\ZPantry-Backend\\CuisineModule\\Class1.cs",
+              "RelativeDocumentMoniker": "CuisineModule\\Class1.cs",
+              "ToolTip": "D:\\Proj\\ZPantry-Backend\\CuisineModule\\Class1.cs",
+              "RelativeToolTip": "CuisineModule\\Class1.cs",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-24T02:40:40.836Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "VerifyRequest.cs",
+              "DocumentMoniker": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\DTOs\\VerifyRequest.cs",
+              "RelativeDocumentMoniker": "AuthenticationModule\\DTOs\\VerifyRequest.cs",
+              "ToolTip": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\DTOs\\VerifyRequest.cs",
+              "RelativeToolTip": "AuthenticationModule\\DTOs\\VerifyRequest.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-15T04:08:04.183Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "EmailService.cs",
+              "DocumentMoniker": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\Services\\Implementations\\EmailService.cs",
+              "RelativeDocumentMoniker": "AuthenticationModule\\Services\\Implementations\\EmailService.cs",
+              "ToolTip": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\Services\\Implementations\\EmailService.cs",
+              "RelativeToolTip": "AuthenticationModule\\Services\\Implementations\\EmailService.cs",
+              "ViewState": "AgIAAA8AAAAAAAAAAIBgwA4AAABIAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-15T02:29:05.715Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "IUserService.cs",
+              "DocumentMoniker": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\Services\\Interfaces\\IUserService.cs",
+              "RelativeDocumentMoniker": "AuthenticationModule\\Services\\Interfaces\\IUserService.cs",
+              "ToolTip": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\Services\\Interfaces\\IUserService.cs",
+              "RelativeToolTip": "AuthenticationModule\\Services\\Interfaces\\IUserService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-14T10:30:40.752Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 15,
+              "Title": "UserRepository.cs",
+              "DocumentMoniker": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\Repositories\\Implementations\\UserRepository.cs",
+              "RelativeDocumentMoniker": "AuthenticationModule\\Repositories\\Implementations\\UserRepository.cs",
+              "ToolTip": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\Repositories\\Implementations\\UserRepository.cs",
+              "RelativeToolTip": "AuthenticationModule\\Repositories\\Implementations\\UserRepository.cs",
+              "ViewState": "AgIAAAEAAAAAAAAAAIBZwCMAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-14T08:45:13.428Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
               "Title": "UserService.cs",
               "DocumentMoniker": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\Services\\Implementations\\UserService.cs",
               "RelativeDocumentMoniker": "AuthenticationModule\\Services\\Implementations\\UserService.cs",
               "ToolTip": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\Services\\Implementations\\UserService.cs",
               "RelativeToolTip": "AuthenticationModule\\Services\\Implementations\\UserService.cs",
-              "ViewState": "AgIAAAQAAAAAAAAAAAAAAAoAAAAcAAAAAAAAAA==",
+              "ViewState": "AgIAACwAAAAAAAAAAIBZwGAAAAAJAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-06-14T10:31:38.51Z",
+              "WhenOpened": "2026-06-14T10:31:38.51Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "RegisterRequest.cs",
+              "DocumentMoniker": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\DTOs\\RegisterRequest.cs",
+              "RelativeDocumentMoniker": "AuthenticationModule\\DTOs\\RegisterRequest.cs",
+              "ToolTip": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\DTOs\\RegisterRequest.cs",
+              "RelativeToolTip": "AuthenticationModule\\DTOs\\RegisterRequest.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAuwAUAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-14T08:41:06.21Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 16,
+              "Title": "IUserRepository.cs",
+              "DocumentMoniker": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\Repositories\\Interfaces\\IUserRepository.cs",
+              "RelativeDocumentMoniker": "AuthenticationModule\\Repositories\\Interfaces\\IUserRepository.cs",
+              "ToolTip": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\Repositories\\Interfaces\\IUserRepository.cs",
+              "RelativeToolTip": "AuthenticationModule\\Repositories\\Interfaces\\IUserRepository.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAARAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-14T08:43:51.403Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 18,
+              "Title": "AuthenticationModule.csproj",
+              "DocumentMoniker": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\AuthenticationModule.csproj",
+              "RelativeDocumentMoniker": "AuthenticationModule\\AuthenticationModule.csproj",
+              "ToolTip": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\AuthenticationModule.csproj",
+              "RelativeToolTip": "AuthenticationModule\\AuthenticationModule.csproj",
+              "ViewState": "AgIAAB8AAAAAAAAAAABRwB8AAAALAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-06-14T08:25:15.222Z",
               "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 17,
+              "Title": "ZpantryDbContext.cs",
+              "DocumentMoniker": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\Repositories\\Entities\\ZpantryDbContext.cs",
+              "RelativeDocumentMoniker": "AuthenticationModule\\Repositories\\Entities\\ZpantryDbContext.cs",
+              "ToolTip": "D:\\Proj\\ZPantry-Backend\\AuthenticationModule\\Repositories\\Entities\\ZpantryDbContext.cs",
+              "RelativeToolTip": "AuthenticationModule\\Repositories\\Entities\\ZpantryDbContext.cs",
+              "ViewState": "AgIAABMAAAAAAAAAAAAqwBYAAAApAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-14T08:32:18.436Z"
             }
           ]
         }

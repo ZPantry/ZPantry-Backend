@@ -1,0 +1,19 @@
+﻿using Microsoft.AspNetCore.Mvc;
+
+[ApiController]
+[Route("api/[controller]")]
+public class IngredientController : ControllerBase
+{
+    private readonly IIngredientService _ingredientService;
+    public IngredientController(IIngredientService ingredientService)
+    {
+        _ingredientService = ingredientService;
+    }
+
+    [HttpGet("get-all")]
+    public async Task<IActionResult> GetAllIngredientsAsync()
+    {
+        var ingredients = await _ingredientService.GetAllIngredientsAsync();
+        return Ok(ingredients);
+    }
+}

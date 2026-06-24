@@ -14,6 +14,7 @@ ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["ZPantry_Backend/ZPantry_Backend.csproj", "ZPantry_Backend/"]
 COPY ["AuthenticationModule/AuthenticationModule.csproj", "AuthenticationModule/"]
+COPY ["CuisineModule/CuisineModule.csproj", "CuisineModule/"]
 RUN dotnet restore "./ZPantry_Backend/ZPantry_Backend.csproj"
 COPY . .
 WORKDIR "/src/ZPantry_Backend"

@@ -7,7 +7,7 @@ using AuthenticationModule.Services.Implementations;
 using AuthenticationModule.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNet.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.SqlClient;
 using Microsoft.IdentityModel.Tokens;
@@ -31,8 +31,13 @@ builder.Services.Configure<EmailSettings>(
 builder.Services.Configure<JwtSettings>(
     builder.Configuration.GetSection("Jwt"));
 
-// DbContext
-builder.Services.AddDbContext<ZpantryDbContext>(options =>
+// DbContexts
+builder.Services.AddDbContext<AuthenticationModule.Repositories.Entities.ZpantryDbContext>(options =>
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        sql => sql.EnableRetryOnFailure()));
+
+builder.Services.AddDbContext<CuisineModule.Repositories.Entities.ZpantryDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection"),
         sql => sql.EnableRetryOnFailure()));
@@ -42,6 +47,10 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ITokenBlacklistService, TokenBlacklistService>();
+
+// CuisineModule DI
+builder.Services.AddScoped<IIngredientRepository, IngredientRepository>();
+builder.Services.AddScoped<IIngredientService, IngredientService>();
 
 // JWT
 var jwtSettings = builder.Configuration
@@ -124,7 +133,12 @@ builder.Services
 builder.Services.AddAuthorization();
 
 builder.Services.AddControllers()
-    .AddApplicationPart(typeof(AuthController).Assembly);
+    .AddApplicationPart(typeof(AuthController).Assembly)
+    .AddApplicationPart(typeof(IngredientController).Assembly)
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    });
 
 builder.Services.AddEndpointsApiExplorer();
 
@@ -152,11 +166,22 @@ builder.Services.AddSwaggerGen(c =>
         Version = "v1"
     });
 
+    c.SwaggerDoc("cuisine", new OpenApiInfo
+    {
+        Title = "Cuisine Module API",
+        Version = "v1"
+    });
+
     c.DocInclusionPredicate((docName, apiDesc) =>
     {
         if (docName == "authentication")
         {
             return apiDesc.GroupName == "authentication";
+        }
+
+        if (docName == "cuisine")
+        {
+            return apiDesc.GroupName == "cuisine";
         }
 
         if (docName == "v1")
@@ -202,9 +227,12 @@ await EnsureDatabaseReadyAsync(
 
 using (var scope = app.Services.CreateScope())
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<ZpantryDbContext>();
-    await dbContext.Database.EnsureCreatedAsync();
-    await EnsureUserSchemaAsync(dbContext);
+    var authDbContext = scope.ServiceProvider.GetRequiredService<AuthenticationModule.Repositories.Entities.ZpantryDbContext>();
+    await authDbContext.Database.EnsureCreatedAsync();
+    await EnsureUserSchemaAsync(authDbContext);
+
+    var cuisineDbContext = scope.ServiceProvider.GetRequiredService<CuisineModule.Repositories.Entities.ZpantryDbContext>();
+    await cuisineDbContext.Database.EnsureCreatedAsync();
 }
 
 await EnsureBootstrapAdminAsync(app.Services, builder.Configuration);
@@ -217,6 +245,10 @@ app.UseSwaggerUI(c =>
     c.SwaggerEndpoint(
         "/swagger/authentication/swagger.json",
         "Authentication Module API");
+
+    c.SwaggerEndpoint(
+        "/swagger/cuisine/swagger.json",
+        "Cuisine Module API");
 
     c.SwaggerEndpoint(
         "/swagger/v1/swagger.json",
@@ -277,7 +309,7 @@ END";
     await command.ExecuteNonQueryAsync();
 }
 
-static async Task EnsureUserSchemaAsync(ZpantryDbContext dbContext)
+static async Task EnsureUserSchemaAsync(AuthenticationModule.Repositories.Entities.ZpantryDbContext dbContext)
 {
     var sqlStatements = new[]
     {
@@ -334,7 +366,7 @@ static async Task EnsureBootstrapAdminAsync(IServiceProvider services, IConfigur
     {
         FullName = adminSection["FullName"] ?? "Admin",
         Email = email,
-        PasswordHashed = new PasswordHasher().HashPassword(password),
+        PasswordHashed = new PasswordHasher<User>().HashPassword(null!, password),
         CreatedAt = DateTime.UtcNow,
         UpdatedAt = DateTime.UtcNow,
         IsEmailConfirmed = true,
