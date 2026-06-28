@@ -1,0 +1,16 @@
+/src/AuthenticationModule/obj/Debug/net10.0/AuthenticationModule.csproj.AssemblyReference.cache
+/src/AuthenticationModule/obj/Debug/net10.0/AuthenticationModule.GeneratedMSBuildEditorConfig.editorconfig
+/src/AuthenticationModule/obj/Debug/net10.0/AuthenticationModule.AssemblyInfoInputs.cache
+/src/AuthenticationModule/obj/Debug/net10.0/AuthenticationModule.AssemblyInfo.cs
+/src/AuthenticationModule/obj/Debug/net10.0/AuthenticationModule.csproj.CoreCompileInputs.cache
+/src/AuthenticationModule/obj/Debug/net10.0/AuthenticationModule.sourcelink.json
+/src/AuthenticationModule/bin/Debug/net10.0/authenticationconfig.json
+/src/AuthenticationModule/bin/Debug/net10.0/AuthenticationModule.deps.json
+/src/AuthenticationModule/bin/Debug/net10.0/AuthenticationModule.runtimeconfig.json
+/src/AuthenticationModule/bin/Debug/net10.0/AuthenticationModule.dll
+/src/AuthenticationModule/bin/Debug/net10.0/AuthenticationModule.pdb
+/src/AuthenticationModule/obj/Debug/net10.0/AuthenticationModule.dll
+/src/AuthenticationModule/obj/Debug/net10.0/refint/AuthenticationModule.dll
+/src/AuthenticationModule/obj/Debug/net10.0/AuthenticationModule.pdb
+/src/AuthenticationModule/obj/Debug/net10.0/AuthenticationModule.genruntimeconfig.cache
+/src/AuthenticationModule/obj/Debug/net10.0/ref/AuthenticationModule.dll

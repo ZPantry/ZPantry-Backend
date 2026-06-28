@@ -1,3 +1,4 @@
+using AuthenticationModule.Contracts.Common;
 using AuthenticationModule.DTOs;
 using AuthenticationModule.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -7,7 +8,6 @@ namespace AuthenticationModule.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[ApiExplorerSettings(GroupName = "authentication")]
 public class AuthController : ControllerBase
 {
     private readonly IUserService _userService;
@@ -19,78 +19,86 @@ public class AuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("register")]
-    public async Task<IActionResult> RegisterNewUser([FromBody] RegisterRequest request)
+    public async Task<ActionResult<ApiResponse<object>>> RegisterNewUser([FromBody] RegisterRequest request)
     {
         try
         {
             await _userService.AddUser(request);
-            return Ok(new { Message = "Đăng ký thành công! Vui lòng kiểm tra Gmail để nhận mã OTP xác thực." });
+            return Ok(ApiResponse<object>.SuccessResponse(
+                null,
+                "Đăng ký thành công! Vui lòng kiểm tra Gmail để nhận mã OTP xác thực.",
+                HttpContext.TraceIdentifier));
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { Message = ex.Message });
+            return StatusCode(500, ApiResponse<object>.Fail(ex.Message, traceId: HttpContext.TraceIdentifier));
         }
     }
 
     [AllowAnonymous]
     [HttpPost("verify-otp")]
-    public async Task<IActionResult> VerifyOtp([FromBody] VerifyRequest request)
+    public async Task<ActionResult<ApiResponse<object>>> VerifyOtp([FromBody] VerifyRequest request)
     {
-        bool isVerified = await _userService.VerifyOtp(request.Email, request.OtpCode);
+        var isVerified = await _userService.VerifyOtp(request.Email, request.OtpCode);
         if (!isVerified)
         {
-            return BadRequest(new { Message = "Mã OTP không chính xác, đã hết hạn hoặc tài khoản đã được xác thực trước đó." });
+            return BadRequest(ApiResponse<object>.Fail(
+                "Mã OTP không chính xác, đã hết hạn hoặc tài khoản đã được xác thực trước đó.",
+                traceId: HttpContext.TraceIdentifier));
         }
 
-        return Ok(new { Message = "Xác thực tài khoản thành công! Bạn hiện đã có thể đăng nhập." });
+        return Ok(ApiResponse<object>.SuccessResponse(
+            null,
+            "Xác thực tài khoản thành công! Bạn hiện đã có thể đăng nhập.",
+            HttpContext.TraceIdentifier));
     }
 
     [AllowAnonymous]
     [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginRequest request)
+    public async Task<ActionResult<ApiResponse<AuthResponse>>> Login([FromBody] LoginRequest request)
     {
         try
         {
             var result = await _userService.LoginAsync(request);
-            return Ok(result);
+            return Ok(ApiResponse<AuthResponse>.SuccessResponse(result, traceId: HttpContext.TraceIdentifier));
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Unauthorized(new { Message = ex.Message });
+            return Unauthorized(ApiResponse<AuthResponse>.Fail(ex.Message, traceId: HttpContext.TraceIdentifier));
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { Message = ex.Message });
+            return StatusCode(500, ApiResponse<AuthResponse>.Fail(ex.Message, traceId: HttpContext.TraceIdentifier));
         }
     }
 
     [AllowAnonymous]
     [HttpPost("refresh-token")]
-    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
+    public async Task<ActionResult<ApiResponse<AuthResponse>>> RefreshToken([FromBody] RefreshTokenRequest request)
     {
         try
         {
             var result = await _userService.RefreshTokenAsync(request);
-            return Ok(result);
+            return Ok(ApiResponse<AuthResponse>.SuccessResponse(result, traceId: HttpContext.TraceIdentifier));
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Unauthorized(new { Message = ex.Message });
+            return Unauthorized(ApiResponse<AuthResponse>.Fail(ex.Message, traceId: HttpContext.TraceIdentifier));
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { Message = ex.Message });
+            return StatusCode(500, ApiResponse<AuthResponse>.Fail(ex.Message, traceId: HttpContext.TraceIdentifier));
         }
     }
 
     [Authorize]
     [HttpPost("logout")]
-    public async Task<IActionResult> Logout()
+    public async Task<ActionResult<ApiResponse<object>>> Logout()
     {
         var authHeader = Request.Headers.Authorization.ToString();
         if (string.IsNullOrWhiteSpace(authHeader) || !authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
         {
-            return Unauthorized(new { Message = "Missing bearer token." });
+            return Unauthorized(ApiResponse<object>.Fail("Missing bearer token.", traceId: HttpContext.TraceIdentifier));
         }
 
         var token = authHeader["Bearer ".Length..].Trim();
@@ -98,15 +106,15 @@ public class AuthController : ControllerBase
         try
         {
             await _userService.LogoutAsync(token);
-            return Ok(new { Message = "Logout successful." });
+            return Ok(ApiResponse<object>.SuccessResponse(null, "Logout successful.", HttpContext.TraceIdentifier));
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Unauthorized(new { Message = ex.Message });
+            return Unauthorized(ApiResponse<object>.Fail(ex.Message, traceId: HttpContext.TraceIdentifier));
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { Message = ex.Message });
+            return StatusCode(500, ApiResponse<object>.Fail(ex.Message, traceId: HttpContext.TraceIdentifier));
         }
     }
 }

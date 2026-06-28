@@ -29,18 +29,20 @@ namespace AuthenticationModule.Repositories.Implementations
 
         public async Task DeleteUser(User user)
         {
-            _context.Users.Remove(user);
+            user.IsDeleted = true;
+            user.DeletedAt = DateTime.UtcNow;
+            _context.Users.Update(user);
             await _context.SaveChangesAsync();
         }
 
         public async Task<User?> GetUserByEmail(string email)
         {
-            return await _context.Users.FirstOrDefaultAsync(us => us.Email == email);
+            return await _context.Users.FirstOrDefaultAsync(us => us.Email == email && !us.IsDeleted);
         }
 
         public async Task<User?> GetUserByRefreshTokenHash(string refreshTokenHash)
         {
-            return await _context.Users.FirstOrDefaultAsync(us => us.RefreshTokenHash == refreshTokenHash);
+            return await _context.Users.FirstOrDefaultAsync(us => us.RefreshTokenHash == refreshTokenHash && !us.IsDeleted);
         }
     }
 }

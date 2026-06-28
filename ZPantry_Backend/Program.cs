@@ -6,102 +6,86 @@ using AuthenticationModule.Repositories.Interfaces;
 using AuthenticationModule.Services.Implementations;
 using AuthenticationModule.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNet.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Data.SqlClient;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using ZPantryModule.Controllers;
+using ZPantryModule.Services.Implementations;
+using ZPantryModule.Services.Interfaces;
 using System.Security.Claims;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Load config
 builder.Configuration.AddJsonFile(
     Path.Combine(AppContext.BaseDirectory, "authenticationconfig.json"),
     optional: false,
     reloadOnChange: true);
 builder.Configuration.AddEnvironmentVariables();
 
-// Options
 builder.Services.Configure<EmailSettings>(
     builder.Configuration.GetSection("Gmail"));
 
 builder.Services.Configure<JwtSettings>(
     builder.Configuration.GetSection("Jwt"));
 
-// DbContext
 builder.Services.AddDbContext<ZpantryDbContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        sql => sql.EnableRetryOnFailure()));
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Dependency Injection
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ITokenBlacklistService, TokenBlacklistService>();
+builder.Services.AddScoped<IIngredientService, IngredientService>();
+builder.Services.AddScoped<IRecipeService, RecipeService>();
+builder.Services.AddScoped<IUserPantryService, PantryService>();
+builder.Services.AddScoped<IRecommendationService, RecommendationService>();
+builder.Services.AddScoped<ICloudinaryStorageService, CloudinaryStorageService>();
+builder.Services.AddScoped<IVectorSearchService, VectorSearchService>();
 
-// JWT
 var jwtSettings = builder.Configuration
     .GetSection("Jwt")
     .Get<JwtSettings>() ?? new JwtSettings();
 
 if (string.IsNullOrWhiteSpace(jwtSettings.SecretKey))
 {
-    throw new InvalidOperationException(
-        "Jwt:SecretKey is missing in authenticationconfig.json.");
+    throw new InvalidOperationException("Jwt:SecretKey is missing in authenticationconfig.json.");
 }
 
-var signingKey = new SymmetricSecurityKey(
-    Encoding.UTF8.GetBytes(jwtSettings.SecretKey));
+var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.SecretKey));
 
 System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
 builder.Services
     .AddAuthentication(options =>
     {
-        options.DefaultAuthenticateScheme =
-            JwtBearerDefaults.AuthenticationScheme;
-
-        options.DefaultChallengeScheme =
-            JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
     })
     .AddJwtBearer(options =>
     {
         options.RequireHttpsMetadata = false;
         options.SaveToken = true;
-
-        options.TokenValidationParameters =
-            new TokenValidationParameters
-            {
-                ValidateIssuer =
-                    !string.IsNullOrWhiteSpace(jwtSettings.Issuer),
-
-                ValidIssuer = jwtSettings.Issuer,
-
-                ValidateAudience =
-                    !string.IsNullOrWhiteSpace(jwtSettings.Audience),
-
-                ValidAudience = jwtSettings.Audience,
-
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = signingKey,
-                RoleClaimType = ClaimTypes.Role,
-                NameClaimType = ClaimTypes.Name,
-
-                ValidateLifetime = true,
-                ClockSkew = TimeSpan.Zero
-            };
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = !string.IsNullOrWhiteSpace(jwtSettings.Issuer),
+            ValidIssuer = jwtSettings.Issuer,
+            ValidateAudience = !string.IsNullOrWhiteSpace(jwtSettings.Audience),
+            ValidAudience = jwtSettings.Audience,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = signingKey,
+            RoleClaimType = ClaimTypes.Role,
+            NameClaimType = ClaimTypes.Name,
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
 
         options.Events = new JwtBearerEvents
         {
             OnTokenValidated = async context =>
             {
-                var jti = context.Principal?
-                    .FindFirst("jti")?
-                    .Value;
+                var jti = context.Principal?.FindFirst("jti")?.Value;
 
                 if (string.IsNullOrWhiteSpace(jti))
                 {
@@ -109,10 +93,7 @@ builder.Services
                     return;
                 }
 
-                var blacklistService =
-                    context.HttpContext.RequestServices
-                        .GetRequiredService<ITokenBlacklistService>();
-
+                var blacklistService = context.HttpContext.RequestServices.GetRequiredService<ITokenBlacklistService>();
                 if (await blacklistService.IsRevokedAsync(jti))
                 {
                     context.Fail("Token has been revoked.");
@@ -124,20 +105,20 @@ builder.Services
 builder.Services.AddAuthorization();
 
 builder.Services.AddControllers()
-    .AddApplicationPart(typeof(AuthController).Assembly);
+    .AddApplicationPart(typeof(AuthController).Assembly)
+    .AddApplicationPart(typeof(IngredientsController).Assembly);
 
 builder.Services.AddEndpointsApiExplorer();
-
-// CORS Configuration
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
         policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+            .AllowAnyMethod()
+            .AllowAnyHeader();
     });
 });
+
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
@@ -145,161 +126,62 @@ builder.Services.AddSwaggerGen(c =>
         Title = "ZPantry API",
         Version = "v1"
     });
+    c.DocInclusionPredicate((_, _) => true);
 
-    c.SwaggerDoc("authentication", new OpenApiInfo
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Title = "Authentication Module API",
-        Version = "v1"
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Enter JWT Token"
     });
 
-    c.DocInclusionPredicate((docName, apiDesc) =>
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
-        if (docName == "authentication")
         {
-            return apiDesc.GroupName == "authentication";
-        }
-
-        if (docName == "v1")
-        {
-            return string.IsNullOrEmpty(apiDesc.GroupName);
-        }
-
-        return false;
-    });
-
-    c.AddSecurityDefinition("Bearer",
-        new OpenApiSecurityScheme
-        {
-            Name = "Authorization",
-            Type = SecuritySchemeType.Http,
-            Scheme = "bearer",
-            BearerFormat = "JWT",
-            In = ParameterLocation.Header,
-            Description = "Enter JWT Token"
-        });
-
-    c.AddSecurityRequirement(
-        new OpenApiSecurityRequirement
-        {
+            new OpenApiSecurityScheme
             {
-                new OpenApiSecurityScheme
+                Reference = new OpenApiReference
                 {
-                    Reference = new OpenApiReference
-                    {
-                        Type = ReferenceType.SecurityScheme,
-                        Id = "Bearer"
-                    }
-                },
-                Array.Empty<string>()
-            }
-        });
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
 });
 
 var app = builder.Build();
-
-await EnsureDatabaseReadyAsync(
-    builder.Configuration.GetConnectionString("DefaultConnection"));
 
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ZpantryDbContext>();
     await dbContext.Database.EnsureCreatedAsync();
-    await EnsureUserSchemaAsync(dbContext);
 }
 
 await EnsureBootstrapAdminAsync(app.Services, builder.Configuration);
 
-// Swagger
 app.UseSwagger();
-
 app.UseSwaggerUI(c =>
 {
-    c.SwaggerEndpoint(
-        "/swagger/authentication/swagger.json",
-        "Authentication Module API");
-
-    c.SwaggerEndpoint(
-        "/swagger/v1/swagger.json",
-        "ZPantry API");
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "ZPantry API");
 });
 
-// HTTPS
-var httpsPorts =
-    Environment.GetEnvironmentVariable("ASPNETCORE_HTTPS_PORTS");
-
-if (!string.IsNullOrWhiteSpace(httpsPorts))
+if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ASPNETCORE_HTTPS_PORTS")))
 {
     app.UseHttpsRedirection();
 }
 
-// Middleware
 app.UseCors("AllowAll");
 app.UseRouting();
-
 app.UseAuthentication();
 app.UseAuthorization();
-
-// Controllers
 app.MapControllers();
 
-// Debug endpoint
-app.MapGet("/", () => "API is running");
-
 app.Run();
-
-static async Task EnsureDatabaseReadyAsync(string? connectionString)
-{
-    if (string.IsNullOrWhiteSpace(connectionString))
-    {
-        throw new InvalidOperationException("DefaultConnection is missing.");
-    }
-
-    var builder = new SqlConnectionStringBuilder(connectionString);
-    var databaseName = builder.InitialCatalog;
-
-    if (string.IsNullOrWhiteSpace(databaseName))
-    {
-        throw new InvalidOperationException("Database name is missing in DefaultConnection.");
-    }
-
-    builder.InitialCatalog = "master";
-
-    await using var connection = new SqlConnection(builder.ConnectionString);
-    await connection.OpenAsync();
-
-    await using var command = connection.CreateCommand();
-    command.CommandText = $@"
-IF DB_ID(N'{databaseName.Replace("'", "''")}') IS NULL
-BEGIN
-    CREATE DATABASE [{databaseName.Replace("]", "]]")}];
-END";
-
-    await command.ExecuteNonQueryAsync();
-}
-
-static async Task EnsureUserSchemaAsync(ZpantryDbContext dbContext)
-{
-    var sqlStatements = new[]
-    {
-        """
-        IF COL_LENGTH('users', 'Role') IS NULL
-            ALTER TABLE [users] ADD [Role] nvarchar(50) NOT NULL CONSTRAINT [DF_users_Role] DEFAULT('user');
-        """,
-        """
-        IF COL_LENGTH('users', 'RefreshTokenHash') IS NULL
-            ALTER TABLE [users] ADD [RefreshTokenHash] nvarchar(128) NULL;
-        """,
-        """
-        IF COL_LENGTH('users', 'RefreshTokenExpiresAt') IS NULL
-            ALTER TABLE [users] ADD [RefreshTokenExpiresAt] datetime2 NULL;
-        """
-    };
-
-    foreach (var sql in sqlStatements)
-    {
-        await dbContext.Database.ExecuteSqlRawAsync(sql);
-    }
-}
 
 static async Task EnsureBootstrapAdminAsync(IServiceProvider services, IConfiguration configuration)
 {
@@ -334,12 +216,11 @@ static async Task EnsureBootstrapAdminAsync(IServiceProvider services, IConfigur
     {
         FullName = adminSection["FullName"] ?? "Admin",
         Email = email,
-        PasswordHashed = new PasswordHasher().HashPassword(password),
-        CreatedAt = DateTime.UtcNow,
-        UpdatedAt = DateTime.UtcNow,
+        PasswordHashed = new Microsoft.AspNet.Identity.PasswordHasher().HashPassword(password),
         IsEmailConfirmed = true,
         IsActive = true,
-        Role = "admin"
+        Role = "admin",
+        UpdatedAt = DateTime.UtcNow
     };
 
     await userRepository.AddUser(admin);
