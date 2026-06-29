@@ -22,6 +22,8 @@ services:
       dockerfile: ZPantry_Backend/Dockerfile
       target: dev
     container_name: zpantry-backend-dev
+    env_file:
+      - .env
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://0.0.0.0:8080

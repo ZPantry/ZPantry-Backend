@@ -1,5 +1,8 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS dev
 WORKDIR /src
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates libgssapi-krb5-2 \
+    && rm -rf /var/lib/apt/lists/*
 COPY ["ZPantry_Backend/ZPantry_Backend.csproj", "ZPantry_Backend/"]
 COPY ["AuthenticationModule/AuthenticationModule.csproj", "AuthenticationModule/"]
 COPY ["ZPantryModule/ZPantryModule.csproj", "ZPantryModule/"]
@@ -27,6 +30,9 @@ RUN dotnet publish "./ZPantry_Backend.csproj" -c $BUILD_CONFIGURATION -o /app/pu
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates libgssapi-krb5-2 \
+    && rm -rf /var/lib/apt/lists/*
 EXPOSE 8080
 EXPOSE 8081
 COPY --from=publish /app/publish .

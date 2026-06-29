@@ -57,8 +57,6 @@ public class UserService : IUserService
             Role = "user"
         };
 
-        await _userRepository.AddUser(user);
-
         var subject = $"[{generatedOtp}] ZPantry account verification code";
         var htmlBody = $@"
             <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>
@@ -79,9 +77,10 @@ public class UserService : IUserService
         }
         catch (Exception ex)
         {
-            await _userRepository.DeleteUser(user);
             throw new Exception($"Could not send OTP email. Details: {ex.Message}");
         }
+
+        await _userRepository.AddUser(user);
     }
 
     public async Task<bool> VerifyOtp(string email, string otpCode)
@@ -237,6 +236,11 @@ public class UserService : IUserService
         if (string.IsNullOrWhiteSpace(_jwtSettings.SecretKey))
         {
             throw new InvalidOperationException("JWT SecretKey is missing.");
+        }
+
+        if (Encoding.UTF8.GetByteCount(_jwtSettings.SecretKey) < 32)
+        {
+            throw new InvalidOperationException("JWT SecretKey must be at least 32 bytes for HS256.");
         }
 
         var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));

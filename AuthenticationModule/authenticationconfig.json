@@ -14,7 +14,7 @@
   "Jwt": {
     "Issuer": "ZPantry",
     "Audience": "ZPantryClient",
-    "SecretKey": "change-me",
+    "SecretKey": "change-me-to-a-random-secret-at-least-32-characters",
     "AccessTokenMinutes": 60,
     "RefreshTokenDays": 7
   },

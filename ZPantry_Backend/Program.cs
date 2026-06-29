@@ -43,6 +43,13 @@ builder.Services.AddScoped<IUserPantryService, PantryService>();
 builder.Services.AddScoped<IRecommendationService, RecommendationService>();
 builder.Services.AddScoped<ICloudinaryStorageService, CloudinaryStorageService>();
 builder.Services.AddScoped<IVectorSearchService, VectorSearchService>();
+builder.Services.AddHttpClient<IAIRecommendationClient, AIRecommendationClient>((serviceProvider, client) =>
+{
+    var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+    var aiServiceUrl = configuration["AI_SERVICE_URL"] ?? "http://localhost:8000";
+    client.BaseAddress = new Uri(aiServiceUrl.TrimEnd('/') + "/");
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
 
 var jwtSettings = builder.Configuration
     .GetSection("Jwt")
@@ -51,6 +58,11 @@ var jwtSettings = builder.Configuration
 if (string.IsNullOrWhiteSpace(jwtSettings.SecretKey))
 {
     throw new InvalidOperationException("Jwt:SecretKey is missing in authenticationconfig.json.");
+}
+
+if (Encoding.UTF8.GetByteCount(jwtSettings.SecretKey) < 32)
+{
+    throw new InvalidOperationException("Jwt:SecretKey must be at least 32 bytes for HS256.");
 }
 
 var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.SecretKey));
@@ -159,10 +171,10 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ZpantryDbContext>();
-    await dbContext.Database.EnsureCreatedAsync();
+    await ApplyDatabaseSchemaModeAsync(dbContext, builder.Configuration);
 }
 
-await EnsureBootstrapAdminAsync(app.Services, builder.Configuration);
+await EnsureDemoAccountsAsync(app.Services, builder.Configuration);
 
 app.UseSwagger();
 app.UseSwaggerUI(c =>
@@ -183,45 +195,74 @@ app.MapControllers();
 
 app.Run();
 
-static async Task EnsureBootstrapAdminAsync(IServiceProvider services, IConfiguration configuration)
+static async Task EnsureDemoAccountsAsync(IServiceProvider services, IConfiguration configuration)
 {
-    var adminSection = configuration.GetSection("BootstrapAdmin");
-    var email = adminSection["Email"];
-    var password = adminSection["Password"];
+    var demoAccounts = configuration.GetSection("DemoAccounts").GetChildren();
 
-    if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+    foreach (var accountSection in demoAccounts)
     {
-        return;
-    }
+        var email = accountSection["Email"];
+        var password = accountSection["Password"];
+        var role = accountSection["Role"] ?? "user";
 
-    using var scope = services.CreateScope();
-    var userRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
-
-    var existingAdmin = await userRepository.GetUserByEmail(email);
-    if (existingAdmin != null)
-    {
-        if (!string.Equals(existingAdmin.Role, "admin", StringComparison.OrdinalIgnoreCase))
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
         {
-            existingAdmin.Role = "admin";
-            existingAdmin.IsEmailConfirmed = true;
-            existingAdmin.IsActive = true;
-            existingAdmin.UpdatedAt = DateTime.UtcNow;
-            await userRepository.UpdateUser(existingAdmin);
+            continue;
         }
 
-        return;
+        using var scope = services.CreateScope();
+        var userRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
+
+        var existingUser = await userRepository.GetUserByEmail(email);
+        if (existingUser != null)
+        {
+            continue;
+        }
+
+        var user = new User
+        {
+            FullName = accountSection["FullName"] ?? role,
+            Email = email,
+            PasswordHashed = new Microsoft.AspNet.Identity.PasswordHasher().HashPassword(password),
+            IsEmailConfirmed = true,
+            IsActive = true,
+            Role = role.Trim().ToLowerInvariant(),
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        await userRepository.AddUser(user);
     }
+}
 
-    var admin = new User
+static async Task ApplyDatabaseSchemaModeAsync(ZpantryDbContext dbContext, IConfiguration configuration)
+{
+    var schemaMode = (configuration["Database:SchemaMode"]
+        ?? configuration["Database__SchemaMode"]
+        ?? "update").Trim().ToLowerInvariant();
+
+    switch (schemaMode)
     {
-        FullName = adminSection["FullName"] ?? "Admin",
-        Email = email,
-        PasswordHashed = new Microsoft.AspNet.Identity.PasswordHasher().HashPassword(password),
-        IsEmailConfirmed = true,
-        IsActive = true,
-        Role = "admin",
-        UpdatedAt = DateTime.UtcNow
-    };
+        case "update":
+            var migrations = dbContext.Database.GetMigrations();
+            if (migrations.Any())
+            {
+                await dbContext.Database.MigrateAsync();
+            }
+            else
+            {
+                await dbContext.Database.EnsureCreatedAsync();
+            }
 
-    await userRepository.AddUser(admin);
+            break;
+
+        case "create-drop":
+        case "createdrop":
+            await dbContext.Database.EnsureDeletedAsync();
+            await dbContext.Database.EnsureCreatedAsync();
+            break;
+
+        default:
+            throw new InvalidOperationException(
+                $"Unsupported Database__SchemaMode '{schemaMode}'. Allowed values: update, create-drop.");
+    }
 }
