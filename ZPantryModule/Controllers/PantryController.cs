@@ -25,7 +25,7 @@ public class PantryController : ControllerBase
         => _userPantryService.UpsertAsync(userId, request);
 
     [HttpPut("items/{itemId:guid}")]
-    public Task<ApiResponse<PantryItemDto>> Update(Guid userId, Guid itemId, [FromBody] UpsertPantryItemRequest request)
+    public Task<ApiResponse<PantryItemDto>> Update(Guid userId, Guid itemId, [FromBody] UpdatePantryItemRequest request)
         => _userPantryService.UpdateAsync(userId, itemId, request);
 
     [HttpDelete("items/{itemId:guid}")]

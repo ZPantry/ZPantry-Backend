@@ -24,7 +24,7 @@ public interface IUserPantryService
 {
     Task<PagedResponse<PantryItemDto>> GetByUserIdAsync(Guid userId, int pageIndex, int pageSize, CancellationToken cancellationToken = default);
     Task<ApiResponse<PantryItemDto>> UpsertAsync(Guid userId, UpsertPantryItemRequest request, CancellationToken cancellationToken = default);
-    Task<ApiResponse<PantryItemDto>> UpdateAsync(Guid userId, Guid itemId, UpsertPantryItemRequest request, CancellationToken cancellationToken = default);
+    Task<ApiResponse<PantryItemDto>> UpdateAsync(Guid userId, Guid itemId, UpdatePantryItemRequest request, CancellationToken cancellationToken = default);
     Task<ApiResponse<object>> DeleteAsync(Guid userId, Guid itemId, CancellationToken cancellationToken = default);
 }
 

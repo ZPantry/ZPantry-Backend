@@ -24,7 +24,7 @@ public class MediaController : ControllerBase
         return await _cloudinaryStorageService.UploadAsync(stream, request.File.FileName);
     }
 
-    [HttpDelete("{id:guid}")]
-    public Task<ApiResponse<object>> Delete(Guid id)
-        => _cloudinaryStorageService.DeleteAsync(id.ToString());
+    [HttpDelete]
+    public Task<ApiResponse<object>> Delete([FromQuery] string publicId)
+        => _cloudinaryStorageService.DeleteAsync(publicId);
 }

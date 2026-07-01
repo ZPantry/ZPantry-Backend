@@ -1,12 +1,12 @@
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Host=postgres;Port=5432;Database=zpantry;Username=zpantry;Password=change-me"
+    "DefaultConnection": "Host=localhost;Port=5432;Database=zpantry;Username=postgres;Password=123456"
   },
   "EmailSettings": "Gmail",
   "Gmail": {
-    "EmailAddress": "",
+    "EmailAddress": "zpantry2026@gmail.com",
     "DisplayName": "ZPantry",
-    "Password": "",
+    "Password": "lisjvxzuujrwensm",
     "Host": "smtp.gmail.com",
     "Port": 587,
     "EnableSSL": true
@@ -14,7 +14,7 @@
   "Jwt": {
     "Issuer": "ZPantry",
     "Audience": "ZPantryClient",
-    "SecretKey": "change-me-to-a-random-secret-at-least-32-characters",
+    "SecretKey": "0bc743867ee58e3170f9133da646cd29e0622678902935959402548f9636fa30006cc884",
     "AccessTokenMinutes": 60,
     "RefreshTokenDays": 7
   },
@@ -22,5 +22,19 @@
     "Email": "",
     "Password": "",
     "FullName": "Admin"
+  },
+  "DemoAccounts": {
+    "0": {
+      "Email": "admin.demo@zpantry.local",
+      "Password": "Admin@123456",
+      "FullName": "Demo Admin",
+      "Role": "admin"
+    },
+    "1": {
+      "Email": "user.demo@zpantry.local",
+      "Password": "User@123456",
+      "FullName": "Demo User",
+      "Role": "user"
+    }
   }
 }
