@@ -21,7 +21,11 @@ public class MediaController : ControllerBase
     public async Task<ApiResponse<string>> Upload([FromForm] UploadMediaRequest request)
     {
         await using var stream = request.File.OpenReadStream();
-        return await _cloudinaryStorageService.UploadAsync(stream, request.File.FileName);
+        return await _cloudinaryStorageService.UploadAsync(
+            stream,
+            request.File.FileName,
+            request.IngredientId,
+            request.RecipeId);
     }
 
     [HttpDelete("{id:guid}")]

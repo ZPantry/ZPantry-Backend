@@ -4,8 +4,6 @@ public class PantryItemDto
 {
     public Guid Id { get; set; }
 
-    public Guid UserId { get; set; }
-
     public Guid IngredientId { get; set; }
 
     public decimal? Quantity { get; set; }
@@ -33,4 +31,3 @@ public class UpsertPantryItemRequest
 
     public string? Note { get; set; }
 }
-

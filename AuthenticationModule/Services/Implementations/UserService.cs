@@ -223,7 +223,6 @@ public class UserService : IUserService
         {
             AccessToken = accessToken,
             ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenMinutes),
-            UserId = user.Id,
             FullName = user.FullName ?? string.Empty,
             Email = user.Email,
             RefreshToken = refreshToken,
@@ -254,6 +253,7 @@ public class UserService : IUserService
             new(JwtRegisteredClaimNames.Sub, user.Email),
             new(JwtRegisteredClaimNames.Email, user.Email),
             new(JwtRegisteredClaimNames.Jti, jti),
+            new("userId", user.Id.ToString()),
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new(ClaimTypes.Name, user.FullName ?? string.Empty),
             new("fullName", user.FullName ?? string.Empty),

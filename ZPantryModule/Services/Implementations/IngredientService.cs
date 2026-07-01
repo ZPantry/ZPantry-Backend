@@ -20,6 +20,7 @@ public class IngredientService : IIngredientService
     public async Task<PagedResponse<IngredientDto>> GetAllAsync(
         int pageIndex,
         int pageSize,
+        string? search = null,
         CancellationToken cancellationToken = default)
     {
         var paging = ZPantryMappings.NormalizePaging(pageIndex, pageSize);
@@ -27,6 +28,16 @@ public class IngredientService : IIngredientService
             .AsNoTracking()
             .Where(ingredient => !ingredient.IsDeleted)
             .OrderBy(ingredient => ingredient.Name);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var keyword = ZPantryMappings.NormalizeName(search);
+            query = query.Where(ingredient =>
+                ingredient.Name.ToLower().Contains(keyword)
+                || ingredient.NormalizedName.ToLower().Contains(keyword)
+                || (ingredient.Category != null && ingredient.Category.ToLower().Contains(keyword)))
+                .OrderBy(ingredient => ingredient.Name);
+        }
 
         var totalItems = await query.CountAsync(cancellationToken);
         var ingredients = await query

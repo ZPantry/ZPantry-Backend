@@ -38,7 +38,6 @@ internal static class ZPantryMappings
         => new()
         {
             Id = pantryItem.Id,
-            UserId = pantryItem.UserId,
             IngredientId = pantryItem.IngredientId,
             Quantity = pantryItem.Quantity,
             Unit = pantryItem.Unit,

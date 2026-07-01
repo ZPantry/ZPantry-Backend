@@ -2,15 +2,26 @@ namespace AuthenticationModule.DTOs;
 
 public class RecommendMealRequest
 {
-    public Guid UserId { get; set; }
-
     public string InputIngredientText { get; set; } = string.Empty;
 
     public List<string> Ingredients { get; set; } = [];
 
+    public List<RecommendMealIngredientRequest> SelectedIngredients { get; set; } = [];
+
     public List<string> CandidateRecipes { get; set; } = [];
 
     public int TopK { get; set; } = 5;
+}
+
+public class RecommendMealIngredientRequest
+{
+    public Guid IngredientId { get; set; }
+
+    public string? Name { get; set; }
+
+    public decimal? Quantity { get; set; }
+
+    public string? Unit { get; set; }
 }
 
 public class RecommendMealResponse
@@ -37,8 +48,6 @@ public class RecommendMealResponseItem
 
 public class RecommendationFeedbackRequest
 {
-    public Guid UserId { get; set; }
-
     public Guid MealRecommendationId { get; set; }
 
     public Guid RecipeId { get; set; }
@@ -56,4 +65,3 @@ public class MissingIngredientSuggestionResponse
 
     public List<string> MissingIngredients { get; set; } = [];
 }
-

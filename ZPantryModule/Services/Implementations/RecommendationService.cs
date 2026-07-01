@@ -18,16 +18,17 @@ public class RecommendationService : IRecommendationService
     }
 
     public async Task<ApiResponse<RecommendMealResponse>> RecommendMealsAsync(
+        Guid userId,
         RecommendMealRequest request,
         CancellationToken cancellationToken = default)
     {
-        var userIngredients = await GetUserIngredientsAsync(request.UserId, request.Ingredients, cancellationToken);
+        var userIngredients = await GetUserIngredientItemsAsync(userId, request, cancellationToken);
         var candidateRecipes = await GetCandidateRecipesAsync(request.CandidateRecipes, cancellationToken);
 
         var recommendation = new MealRecommendation
         {
-            UserId = request.UserId,
-            RequestText = string.Join(", ", request.CandidateRecipes),
+            UserId = userId,
+            RequestText = string.Join(", ", request.CandidateRecipes.Concat(request.Ingredients)),
             InputIngredientText = request.InputIngredientText,
             RecommendationType = "meal",
             Status = "processing"
@@ -39,11 +40,9 @@ public class RecommendationService : IRecommendationService
         var aiResponse = await _aiRecommendationClient.RecommendMealsAsync(
             new RecommendMealAiRequest
             {
-                UserId = request.UserId,
+                UserId = userId,
                 InputIngredientText = request.InputIngredientText,
-                Ingredients = userIngredients
-                    .Select(name => new AiIngredientItem { Name = name })
-                    .ToList(),
+                Ingredients = userIngredients,
                 CandidateRecipes = candidateRecipes,
                 TopK = request.TopK <= 0 ? 5 : request.TopK
             },
@@ -97,6 +96,7 @@ public class RecommendationService : IRecommendationService
     }
 
     public async Task<ApiResponse<MissingIngredientSuggestionResponse>> SuggestMissingIngredientsAsync(
+        Guid userId,
         RecommendMealRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -107,7 +107,9 @@ public class RecommendationService : IRecommendationService
         }
 
         var requiredIngredients = await GetRecipeIngredientNamesAsync(recipe.Id, cancellationToken);
-        var userIngredients = await GetUserIngredientsAsync(request.UserId, request.Ingredients, cancellationToken);
+        var userIngredients = (await GetUserIngredientItemsAsync(userId, request, cancellationToken))
+            .Select(item => item.Name)
+            .ToList();
 
         var aiResponse = await _aiRecommendationClient.SuggestMissingIngredientsAsync(
             new MissingIngredientAiRequest
@@ -134,12 +136,15 @@ public class RecommendationService : IRecommendationService
     }
 
     public async Task<ApiResponse<object>> FeedbackAsync(
+        Guid userId,
         Guid recommendationId,
         RecommendationFeedbackRequest request,
         CancellationToken cancellationToken = default)
     {
         var recommendationExists = await _dbContext.MealRecommendations.AnyAsync(
-            recommendation => recommendation.Id == recommendationId && !recommendation.IsDeleted,
+            recommendation => recommendation.Id == recommendationId
+                && recommendation.UserId == userId
+                && !recommendation.IsDeleted,
             cancellationToken);
 
         if (!recommendationExists)
@@ -149,7 +154,7 @@ public class RecommendationService : IRecommendationService
 
         var feedback = new RecommendationFeedback
         {
-            UserId = request.UserId,
+            UserId = userId,
             MealRecommendationId = recommendationId,
             RecipeId = request.RecipeId,
             Rating = request.Rating,
@@ -163,11 +168,15 @@ public class RecommendationService : IRecommendationService
         return ApiResponse<object>.SuccessResponse(new { feedback.Id }, "Feedback saved.");
     }
 
-    public async Task<ApiResponse<object>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<ApiResponse<object>> GetByIdAsync(Guid userId, Guid id, CancellationToken cancellationToken = default)
     {
         var recommendation = await _dbContext.MealRecommendations
             .AsNoTracking()
-            .FirstOrDefaultAsync(item => item.Id == id && !item.IsDeleted, cancellationToken);
+            .FirstOrDefaultAsync(
+                item => item.Id == id
+                    && item.UserId == userId
+                    && !item.IsDeleted,
+                cancellationToken);
 
         if (recommendation is null)
         {
@@ -183,7 +192,6 @@ public class RecommendationService : IRecommendationService
         return ApiResponse<object>.SuccessResponse(new
         {
             recommendation.Id,
-            recommendation.UserId,
             recommendation.InputIngredientText,
             recommendation.RecommendationType,
             recommendation.Status,
@@ -201,26 +209,66 @@ public class RecommendationService : IRecommendationService
         });
     }
 
-    private async Task<List<string>> GetUserIngredientsAsync(
+    private async Task<List<AiIngredientItem>> GetUserIngredientItemsAsync(
         Guid userId,
-        IEnumerable<string> requestIngredients,
+        RecommendMealRequest request,
         CancellationToken cancellationToken)
     {
-        var pantryIngredientNames = await (
+        var pantryIngredients = await (
                 from pantryItem in _dbContext.UserPantryItems.AsNoTracking()
                 join ingredient in _dbContext.Ingredients.AsNoTracking()
                     on pantryItem.IngredientId equals ingredient.Id
                 where pantryItem.UserId == userId
                     && !pantryItem.IsDeleted
                     && !ingredient.IsDeleted
-                select ingredient.Name)
+                select new AiIngredientItem
+                {
+                    IngredientId = ingredient.Id,
+                    Name = ingredient.Name,
+                    Quantity = pantryItem.Quantity,
+                    Unit = pantryItem.Unit
+                })
             .ToListAsync(cancellationToken);
 
-        return requestIngredients
-            .Concat(pantryIngredientNames)
+        var selectedIds = request.SelectedIngredients
+            .Where(item => item.IngredientId != Guid.Empty)
+            .Select(item => item.IngredientId)
+            .Distinct()
+            .ToList();
+
+        var ingredientNamesById = selectedIds.Count == 0
+            ? new Dictionary<Guid, string>()
+            : await _dbContext.Ingredients
+                .AsNoTracking()
+                .Where(ingredient => selectedIds.Contains(ingredient.Id) && !ingredient.IsDeleted)
+                .ToDictionaryAsync(ingredient => ingredient.Id, ingredient => ingredient.Name, cancellationToken);
+
+        var selectedIngredients = request.SelectedIngredients
+            .Select(item =>
+            {
+                ingredientNamesById.TryGetValue(item.IngredientId, out var ingredientName);
+                return new AiIngredientItem
+                {
+                    IngredientId = item.IngredientId == Guid.Empty ? null : item.IngredientId,
+                    Name = ingredientName ?? item.Name ?? string.Empty,
+                    Quantity = item.Quantity,
+                    Unit = item.Unit
+                };
+            });
+
+        var typedIngredients = request.Ingredients
             .Where(name => !string.IsNullOrWhiteSpace(name))
-            .Select(name => name.Trim())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(name => new AiIngredientItem
+            {
+                Name = name.Trim()
+            });
+
+        return pantryIngredients
+            .Concat(selectedIngredients)
+            .Concat(typedIngredients)
+            .Where(item => !string.IsNullOrWhiteSpace(item.Name))
+            .GroupBy(item => item.IngredientId?.ToString() ?? item.Name.Trim().ToLowerInvariant())
+            .Select(group => group.First())
             .ToList();
     }
 

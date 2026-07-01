@@ -5,7 +5,12 @@ namespace ZPantryModule.Services.Interfaces;
 
 public interface IIngredientService
 {
-    Task<PagedResponse<IngredientDto>> GetAllAsync(int pageIndex, int pageSize, CancellationToken cancellationToken = default);
+    Task<PagedResponse<IngredientDto>> GetAllAsync(
+        int pageIndex,
+        int pageSize,
+        string? search = null,
+        CancellationToken cancellationToken = default);
+
     Task<ApiResponse<IngredientDto>> CreateAsync(CreateIngredientRequest request, CancellationToken cancellationToken = default);
     Task<ApiResponse<IngredientDto>> UpdateAsync(Guid id, UpdateIngredientRequest request, CancellationToken cancellationToken = default);
     Task<ApiResponse<object>> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
@@ -30,10 +35,10 @@ public interface IUserPantryService
 
 public interface IRecommendationService
 {
-    Task<ApiResponse<RecommendMealResponse>> RecommendMealsAsync(RecommendMealRequest request, CancellationToken cancellationToken = default);
-    Task<ApiResponse<MissingIngredientSuggestionResponse>> SuggestMissingIngredientsAsync(RecommendMealRequest request, CancellationToken cancellationToken = default);
-    Task<ApiResponse<object>> FeedbackAsync(Guid recommendationId, RecommendationFeedbackRequest request, CancellationToken cancellationToken = default);
-    Task<ApiResponse<object>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<ApiResponse<RecommendMealResponse>> RecommendMealsAsync(Guid userId, RecommendMealRequest request, CancellationToken cancellationToken = default);
+    Task<ApiResponse<MissingIngredientSuggestionResponse>> SuggestMissingIngredientsAsync(Guid userId, RecommendMealRequest request, CancellationToken cancellationToken = default);
+    Task<ApiResponse<object>> FeedbackAsync(Guid userId, Guid recommendationId, RecommendationFeedbackRequest request, CancellationToken cancellationToken = default);
+    Task<ApiResponse<object>> GetByIdAsync(Guid userId, Guid id, CancellationToken cancellationToken = default);
 }
 
 public interface IAIRecommendationClient
@@ -46,7 +51,13 @@ public interface IAIRecommendationClient
 
 public interface ICloudinaryStorageService
 {
-    Task<ApiResponse<string>> UploadAsync(Stream fileStream, string fileName, CancellationToken cancellationToken = default);
+    Task<ApiResponse<string>> UploadAsync(
+        Stream fileStream,
+        string fileName,
+        Guid? ingredientId = null,
+        Guid? recipeId = null,
+        CancellationToken cancellationToken = default);
+
     Task<ApiResponse<object>> DeleteAsync(string publicId, CancellationToken cancellationToken = default);
 }
 
@@ -55,4 +66,3 @@ public interface IVectorSearchService
     Task<IReadOnlyList<object>> FindSimilarRecipesAsync(float[] embedding, int topK, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<object>> FindSimilarIngredientsAsync(float[] embedding, int topK, CancellationToken cancellationToken = default);
 }
-

@@ -17,8 +17,11 @@ public class IngredientsController : ControllerBase
     }
 
     [HttpGet]
-    public Task<PagedResponse<IngredientDto>> GetAll([FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10)
-        => _ingredientService.GetAllAsync(pageIndex, pageSize);
+    public Task<PagedResponse<IngredientDto>> GetAll(
+        [FromQuery] int pageIndex = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? search = null)
+        => _ingredientService.GetAllAsync(pageIndex, pageSize, search);
 
     [HttpPost]
     public Task<ApiResponse<IngredientDto>> Create([FromBody] CreateIngredientRequest request)
@@ -32,4 +35,3 @@ public class IngredientsController : ControllerBase
     public Task<ApiResponse<object>> Delete(Guid id)
         => _ingredientService.DeleteAsync(id);
 }
-

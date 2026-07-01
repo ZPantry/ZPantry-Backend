@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ZPantryModule")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+468e9f69744e91d8b3ac6fe65012ed81b7829602")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b50e410cfd401f1b9598379fc36cf7d87af992d9")]
 [assembly: System.Reflection.AssemblyProductAttribute("ZPantryModule")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ZPantryModule")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

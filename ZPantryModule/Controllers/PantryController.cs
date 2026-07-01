@@ -1,12 +1,15 @@
 using AuthenticationModule.Contracts.Common;
 using AuthenticationModule.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using ZPantryModule.Services.Interfaces;
 
 namespace ZPantryModule.Controllers;
 
 [ApiController]
-[Route("api/users/{userId:guid}/pantry")]
+[Authorize]
+[Route("api/me/pantry")]
 public class PantryController : ControllerBase
 {
     private readonly IUserPantryService _userPantryService;
@@ -17,19 +20,63 @@ public class PantryController : ControllerBase
     }
 
     [HttpGet]
-    public Task<PagedResponse<PantryItemDto>> GetByUserId(Guid userId, [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10)
-        => _userPantryService.GetByUserIdAsync(userId, pageIndex, pageSize);
+    public async Task<ActionResult<PagedResponse<PantryItemDto>>> GetByUserId(
+        [FromQuery] int pageIndex = 1,
+        [FromQuery] int pageSize = 10)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+        {
+            return Unauthorized(PagedResponse<PantryItemDto>.FailPage("Invalid access token.", HttpContext.TraceIdentifier));
+        }
+
+        return Ok(await _userPantryService.GetByUserIdAsync(userId.Value, pageIndex, pageSize));
+    }
 
     [HttpPost("items")]
-    public Task<ApiResponse<PantryItemDto>> Upsert(Guid userId, [FromBody] UpsertPantryItemRequest request)
-        => _userPantryService.UpsertAsync(userId, request);
+    public async Task<ActionResult<ApiResponse<PantryItemDto>>> Upsert([FromBody] UpsertPantryItemRequest request)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+        {
+            return Unauthorized(ApiResponse<PantryItemDto>.Fail("Invalid access token.", traceId: HttpContext.TraceIdentifier));
+        }
+
+        return Ok(await _userPantryService.UpsertAsync(userId.Value, request));
+    }
 
     [HttpPut("items/{itemId:guid}")]
-    public Task<ApiResponse<PantryItemDto>> Update(Guid userId, Guid itemId, [FromBody] UpsertPantryItemRequest request)
-        => _userPantryService.UpdateAsync(userId, itemId, request);
+    public async Task<ActionResult<ApiResponse<PantryItemDto>>> Update(
+        Guid itemId,
+        [FromBody] UpsertPantryItemRequest request)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+        {
+            return Unauthorized(ApiResponse<PantryItemDto>.Fail("Invalid access token.", traceId: HttpContext.TraceIdentifier));
+        }
+
+        return Ok(await _userPantryService.UpdateAsync(userId.Value, itemId, request));
+    }
 
     [HttpDelete("items/{itemId:guid}")]
-    public Task<ApiResponse<object>> Delete(Guid userId, Guid itemId)
-        => _userPantryService.DeleteAsync(userId, itemId);
-}
+    public async Task<ActionResult<ApiResponse<object>>> Delete(Guid itemId)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+        {
+            return Unauthorized(ApiResponse<object>.Fail("Invalid access token.", traceId: HttpContext.TraceIdentifier));
+        }
 
+        return Ok(await _userPantryService.DeleteAsync(userId.Value, itemId));
+    }
+
+    private Guid? GetCurrentUserId()
+    {
+        var value = User.FindFirstValue("userId")
+            ?? User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue("nameid");
+
+        return Guid.TryParse(value, out var userId) ? userId : null;
+    }
+}
