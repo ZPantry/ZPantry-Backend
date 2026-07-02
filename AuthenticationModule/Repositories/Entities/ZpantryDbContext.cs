@@ -79,6 +79,8 @@ public partial class ZpantryDbContext : DbContext
             entity.Property(e => e.Category).HasMaxLength(100);
             entity.Property(e => e.Unit).HasMaxLength(50);
             entity.Property(e => e.ImageUrl).HasMaxLength(500);
+            entity.Property(e => e.GradientFrom).HasMaxLength(32);
+            entity.Property(e => e.GradientTo).HasMaxLength(32);
         });
 
         modelBuilder.Entity<IngredientAlias>(entity =>
@@ -97,6 +99,8 @@ public partial class ZpantryDbContext : DbContext
             entity.Property(e => e.Difficulty).HasMaxLength(50);
             entity.Property(e => e.ImageUrl).HasMaxLength(500);
             entity.Property(e => e.SourceType).HasMaxLength(100);
+            entity.Property(e => e.GradientFrom).HasMaxLength(32);
+            entity.Property(e => e.GradientTo).HasMaxLength(32);
         });
 
         modelBuilder.Entity<RecipeIngredient>(entity =>

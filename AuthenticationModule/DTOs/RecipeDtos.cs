@@ -19,11 +19,19 @@ public class RecipeDto
     public string? ImageUrl { get; set; }
 
     public string? SourceType { get; set; }
+
+    public string? GradientFrom { get; set; }
+
+    public string? GradientTo { get; set; }
+
+    public List<RecipeIngredientDto> Ingredients { get; set; } = [];
 }
 
 public class RecipeIngredientDto
 {
     public Guid IngredientId { get; set; }
+
+    public string? IngredientName { get; set; }
 
     public decimal? Quantity { get; set; }
 
@@ -52,10 +60,13 @@ public class CreateRecipeRequest
 
     public string? SourceType { get; set; }
 
+    public string? GradientFrom { get; set; }
+
+    public string? GradientTo { get; set; }
+
     public List<RecipeIngredientDto> Ingredients { get; set; } = [];
 }
 
 public class UpdateRecipeRequest : CreateRecipeRequest
 {
 }
-

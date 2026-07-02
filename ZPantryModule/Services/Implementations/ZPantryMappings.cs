@@ -17,7 +17,9 @@ internal static class ZPantryMappings
             ProteinPerUnit = ingredient.ProteinPerUnit,
             FatPerUnit = ingredient.FatPerUnit,
             CarbPerUnit = ingredient.CarbPerUnit,
-            ImageUrl = ingredient.ImageUrl
+            ImageUrl = ingredient.ImageUrl,
+            GradientFrom = ingredient.GradientFrom,
+            GradientTo = ingredient.GradientTo
         };
 
     public static RecipeDto ToDto(this Recipe recipe)
@@ -31,7 +33,9 @@ internal static class ZPantryMappings
             ServingSize = recipe.ServingSize,
             InstructionText = recipe.InstructionText,
             ImageUrl = recipe.ImageUrl,
-            SourceType = recipe.SourceType
+            SourceType = recipe.SourceType,
+            GradientFrom = recipe.GradientFrom,
+            GradientTo = recipe.GradientTo
         };
 
     public static PantryItemDto ToDto(this UserPantryItem pantryItem)

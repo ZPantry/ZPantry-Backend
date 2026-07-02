@@ -81,7 +81,9 @@ public class IngredientService : IIngredientService
             ProteinPerUnit = request.ProteinPerUnit,
             FatPerUnit = request.FatPerUnit,
             CarbPerUnit = request.CarbPerUnit,
-            ImageUrl = request.ImageUrl
+            ImageUrl = request.ImageUrl,
+            GradientFrom = request.GradientFrom ?? ColorGradient.Generate(request.Name, request.Category).From,
+            GradientTo = request.GradientTo ?? ColorGradient.Generate(request.Name, request.Category).To
         };
 
         var embeddingResponse = await _aiRecommendationClient.EmbedIngredientAsync(
@@ -142,6 +144,8 @@ public class IngredientService : IIngredientService
         ingredient.FatPerUnit = request.FatPerUnit;
         ingredient.CarbPerUnit = request.CarbPerUnit;
         ingredient.ImageUrl = request.ImageUrl;
+        ingredient.GradientFrom = request.GradientFrom ?? ColorGradient.Generate(request.Name, request.Category).From;
+        ingredient.GradientTo = request.GradientTo ?? ColorGradient.Generate(request.Name, request.Category).To;
         ingredient.UpdatedAt = DateTime.UtcNow;
 
         var embeddingResponse = await _aiRecommendationClient.EmbedIngredientAsync(

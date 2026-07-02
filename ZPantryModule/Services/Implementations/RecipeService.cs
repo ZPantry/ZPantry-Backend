@@ -33,9 +33,19 @@ public class RecipeService : IRecipeService
             .Skip((paging.PageIndex - 1) * paging.PageSize)
             .Take(paging.PageSize)
             .ToListAsync(cancellationToken);
+        var ingredientsByRecipeId = await LoadRecipeIngredientsAsync(
+            recipes.Select(recipe => recipe.Id).ToList(),
+            cancellationToken);
 
         return PagedResponse<RecipeDto>.SuccessPage(
-            recipes.Select(recipe => recipe.ToDto()),
+            recipes.Select(recipe =>
+            {
+                var dto = recipe.ToDto();
+                dto.Ingredients = ingredientsByRecipeId.TryGetValue(recipe.Id, out var recipeIngredients)
+                    ? recipeIngredients
+                    : [];
+                return dto;
+            }),
             paging.PageIndex,
             paging.PageSize,
             totalItems);
@@ -59,7 +69,9 @@ public class RecipeService : IRecipeService
             ServingSize = request.ServingSize,
             InstructionText = request.InstructionText,
             ImageUrl = request.ImageUrl,
-            SourceType = request.SourceType
+            SourceType = request.SourceType,
+            GradientFrom = request.GradientFrom ?? ColorGradient.Generate(request.Name, request.Difficulty).From,
+            GradientTo = request.GradientTo ?? ColorGradient.Generate(request.Name, request.Difficulty).To
         };
 
         AddRecipeIngredients(recipe.Id, request.Ingredients);
@@ -82,7 +94,13 @@ public class RecipeService : IRecipeService
             return ApiResponse<RecipeDto>.Fail("Recipe not found.");
         }
 
-        return ApiResponse<RecipeDto>.SuccessResponse(recipe.ToDto());
+        var dto = recipe.ToDto();
+        var ingredientsByRecipeId = await LoadRecipeIngredientsAsync(new[] { recipe.Id }, cancellationToken);
+        dto.Ingredients = ingredientsByRecipeId.TryGetValue(recipe.Id, out var recipeIngredients)
+            ? recipeIngredients
+            : [];
+
+        return ApiResponse<RecipeDto>.SuccessResponse(dto);
     }
 
     public async Task<ApiResponse<RecipeDto>> UpdateAsync(
@@ -111,6 +129,8 @@ public class RecipeService : IRecipeService
         recipe.InstructionText = request.InstructionText;
         recipe.ImageUrl = request.ImageUrl;
         recipe.SourceType = request.SourceType;
+        recipe.GradientFrom = request.GradientFrom ?? ColorGradient.Generate(request.Name, request.Difficulty).From;
+        recipe.GradientTo = request.GradientTo ?? ColorGradient.Generate(request.Name, request.Difficulty).To;
         recipe.UpdatedAt = DateTime.UtcNow;
 
         var existingIngredients = await _dbContext.RecipeIngredients
@@ -203,5 +223,43 @@ public class RecipeService : IRecipeService
         {
             recipe.Embedding = embeddingResponse.Data.Embedding.ToArray();
         }
+    }
+
+    private async Task<Dictionary<Guid, List<RecipeIngredientDto>>> LoadRecipeIngredientsAsync(
+        IReadOnlyCollection<Guid> recipeIds,
+        CancellationToken cancellationToken)
+    {
+        var recipeIdSet = recipeIds.Distinct().ToArray();
+
+        if (recipeIdSet.Length == 0)
+        {
+            return new Dictionary<Guid, List<RecipeIngredientDto>>();
+        }
+
+        var ingredientRows = await (
+            from recipeIngredient in _dbContext.RecipeIngredients.AsNoTracking()
+            join ingredient in _dbContext.Ingredients.AsNoTracking()
+                on recipeIngredient.IngredientId equals ingredient.Id
+            where recipeIdSet.Contains(recipeIngredient.RecipeId)
+                && !recipeIngredient.IsDeleted
+                && !ingredient.IsDeleted
+            select new
+            {
+                recipeIngredient.RecipeId,
+                Item = new RecipeIngredientDto
+                {
+                    IngredientId = ingredient.Id,
+                    IngredientName = ingredient.Name,
+                    Quantity = recipeIngredient.Quantity,
+                    Unit = recipeIngredient.Unit,
+                    IsRequired = recipeIngredient.IsRequired,
+                    Note = recipeIngredient.Note
+                }
+            })
+            .ToListAsync(cancellationToken);
+
+        return ingredientRows
+            .GroupBy(row => row.RecipeId)
+            .ToDictionary(group => group.Key, group => group.Select(row => row.Item).ToList());
     }
 }

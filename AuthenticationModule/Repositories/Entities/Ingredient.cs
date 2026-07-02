@@ -20,6 +20,9 @@ public partial class Ingredient : BaseEntity
 
     public string? ImageUrl { get; set; }
 
+    public string? GradientFrom { get; set; }
+
+    public string? GradientTo { get; set; }
+
     public float[]? Embedding { get; set; }
 }
-

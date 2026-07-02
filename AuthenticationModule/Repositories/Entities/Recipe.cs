@@ -18,6 +18,9 @@ public partial class Recipe : BaseEntity
 
     public string? SourceType { get; set; }
 
+    public string? GradientFrom { get; set; }
+
+    public string? GradientTo { get; set; }
+
     public float[]? Embedding { get; set; }
 }
-

@@ -173,6 +173,7 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ZpantryDbContext>();
     await ApplyDatabaseSchemaModeAsync(dbContext, builder.Configuration);
+    await EnsureGradientColumnsAsync(dbContext);
 }
 
 await EnsureDemoAccountsAsync(app.Services, builder.Configuration);
@@ -266,6 +267,22 @@ static async Task ApplyDatabaseSchemaModeAsync(ZpantryDbContext dbContext, IConf
         default:
             throw new InvalidOperationException(
                 $"Unsupported Database__SchemaMode '{schemaMode}'. Allowed values: update, create-drop.");
+    }
+}
+
+static async Task EnsureGradientColumnsAsync(ZpantryDbContext dbContext)
+{
+    var commands = new[]
+    {
+        @"ALTER TABLE IF EXISTS ""ingredients"" ADD COLUMN IF NOT EXISTS ""GradientFrom"" character varying(32);",
+        @"ALTER TABLE IF EXISTS ""ingredients"" ADD COLUMN IF NOT EXISTS ""GradientTo"" character varying(32);",
+        @"ALTER TABLE IF EXISTS ""recipes"" ADD COLUMN IF NOT EXISTS ""GradientFrom"" character varying(32);",
+        @"ALTER TABLE IF EXISTS ""recipes"" ADD COLUMN IF NOT EXISTS ""GradientTo"" character varying(32);"
+    };
+
+    foreach (var command in commands)
+    {
+        await dbContext.Database.ExecuteSqlRawAsync(command);
     }
 }
 

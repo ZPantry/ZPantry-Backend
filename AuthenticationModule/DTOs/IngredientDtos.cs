@@ -21,6 +21,10 @@ public class IngredientDto
     public decimal? CarbPerUnit { get; set; }
 
     public string? ImageUrl { get; set; }
+
+    public string? GradientFrom { get; set; }
+
+    public string? GradientTo { get; set; }
 }
 
 public class CreateIngredientRequest
@@ -40,9 +44,12 @@ public class CreateIngredientRequest
     public decimal? CarbPerUnit { get; set; }
 
     public string? ImageUrl { get; set; }
+
+    public string? GradientFrom { get; set; }
+
+    public string? GradientTo { get; set; }
 }
 
 public class UpdateIngredientRequest : CreateIngredientRequest
 {
 }
-
