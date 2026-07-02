@@ -12,7 +12,9 @@ public interface IIngredientService
         CancellationToken cancellationToken = default);
 
     Task<ApiResponse<IngredientDto>> CreateAsync(CreateIngredientRequest request, CancellationToken cancellationToken = default);
+    Task<ApiResponse<IngredientDto>> CreateV2Async(ZPantryModule.DTOs.CreateIngredientFormRequest request, CancellationToken cancellationToken = default);
     Task<ApiResponse<IngredientDto>> UpdateAsync(Guid id, UpdateIngredientRequest request, CancellationToken cancellationToken = default);
+    Task<ApiResponse<IngredientDto>> UpdateV2Async(Guid id, ZPantryModule.DTOs.UpdateIngredientFormRequest request, CancellationToken cancellationToken = default);
     Task<ApiResponse<object>> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 }
 
@@ -20,8 +22,10 @@ public interface IRecipeService
 {
     Task<PagedResponse<RecipeDto>> GetAllAsync(int pageIndex, int pageSize, CancellationToken cancellationToken = default);
     Task<ApiResponse<RecipeDto>> CreateAsync(CreateRecipeRequest request, CancellationToken cancellationToken = default);
+    Task<ApiResponse<RecipeDto>> CreateV2Async(ZPantryModule.DTOs.CreateRecipeFormRequest request, CancellationToken cancellationToken = default);
     Task<ApiResponse<RecipeDto>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<ApiResponse<RecipeDto>> UpdateAsync(Guid id, UpdateRecipeRequest request, CancellationToken cancellationToken = default);
+    Task<ApiResponse<RecipeDto>> UpdateV2Async(Guid id, ZPantryModule.DTOs.UpdateRecipeFormRequest request, CancellationToken cancellationToken = default);
     Task<ApiResponse<object>> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 }
 

@@ -1,6 +1,7 @@
 using AuthenticationModule.Contracts.Common;
 using AuthenticationModule.DTOs;
 using AuthenticationModule.Repositories.Entities;
+using ZPantryModule.DTOs;
 using Microsoft.EntityFrameworkCore;
 using ZPantryModule.Services.Interfaces;
 
@@ -10,11 +11,16 @@ public class IngredientService : IIngredientService
 {
     private readonly ZpantryDbContext _dbContext;
     private readonly IAIRecommendationClient _aiRecommendationClient;
+    private readonly ICloudinaryStorageService _cloudinaryStorageService;
 
-    public IngredientService(ZpantryDbContext dbContext, IAIRecommendationClient aiRecommendationClient)
+    public IngredientService(
+        ZpantryDbContext dbContext,
+        IAIRecommendationClient aiRecommendationClient,
+        ICloudinaryStorageService cloudinaryStorageService)
     {
         _dbContext = dbContext;
         _aiRecommendationClient = aiRecommendationClient;
+        _cloudinaryStorageService = cloudinaryStorageService;
     }
 
     public async Task<PagedResponse<IngredientDto>> GetAllAsync(
@@ -107,6 +113,80 @@ public class IngredientService : IIngredientService
         return ApiResponse<IngredientDto>.SuccessResponse(ingredient.ToDto(), "Ingredient created.");
     }
 
+    public async Task<ApiResponse<IngredientDto>> CreateV2Async(
+        CreateIngredientFormRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            return ApiResponse<IngredientDto>.Fail("Ingredient name is required.");
+        }
+
+        var normalizedName = ZPantryMappings.NormalizeName(request.Name);
+        var exists = await _dbContext.Ingredients.AnyAsync(
+            ingredient => !ingredient.IsDeleted && ingredient.NormalizedName == normalizedName,
+            cancellationToken);
+
+        if (exists)
+        {
+            return ApiResponse<IngredientDto>.Fail("Ingredient already exists.");
+        }
+
+        var ingredient = new Ingredient
+        {
+            Name = request.Name.Trim(),
+            NormalizedName = normalizedName,
+            Category = request.Category,
+            Unit = request.Unit,
+            CaloriesPerUnit = request.CaloriesPerUnit,
+            ProteinPerUnit = request.ProteinPerUnit,
+            FatPerUnit = request.FatPerUnit,
+            CarbPerUnit = request.CarbPerUnit,
+            ImageUrl = request.ImageUrl,
+            GradientFrom = request.GradientFrom ?? ColorGradient.Generate(request.Name, request.Category).From,
+            GradientTo = request.GradientTo ?? ColorGradient.Generate(request.Name, request.Category).To
+        };
+
+        var embeddingResponse = await _aiRecommendationClient.EmbedIngredientAsync(
+            new EmbedIngredientAiRequest
+            {
+                IngredientId = ingredient.Id,
+                Name = ingredient.Name,
+                NormalizedName = ingredient.NormalizedName,
+                Category = ingredient.Category
+            },
+            cancellationToken);
+
+        if (embeddingResponse.Success && embeddingResponse.Data?.Embedding.Count > 0)
+        {
+            ingredient.Embedding = embeddingResponse.Data.Embedding.ToArray();
+        }
+
+        _dbContext.Ingredients.Add(ingredient);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        if (request.ImageFile is not null && request.ImageFile.Length > 0)
+        {
+            await using var stream = request.ImageFile.OpenReadStream();
+            var uploadResponse = await _cloudinaryStorageService.UploadAsync(
+                stream,
+                request.ImageFile.FileName,
+                ingredientId: ingredient.Id,
+                cancellationToken: cancellationToken);
+
+            if (!uploadResponse.Success || string.IsNullOrWhiteSpace(uploadResponse.Data))
+            {
+                return ApiResponse<IngredientDto>.Fail(uploadResponse.Message ?? "Ingredient image upload failed.");
+            }
+
+            ingredient.ImageUrl = uploadResponse.Data;
+            ingredient.UpdatedAt = DateTime.UtcNow;
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        return ApiResponse<IngredientDto>.SuccessResponse(ingredient.ToDto(), "Ingredient created.");
+    }
+
     public async Task<ApiResponse<IngredientDto>> UpdateAsync(
         Guid id,
         UpdateIngredientRequest request,
@@ -189,6 +269,121 @@ public class IngredientService : IIngredientService
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return ApiResponse<IngredientDto>.SuccessResponse(ingredient.ToDto(), "Ingredient updated.");
+    }
+
+    public async Task<ApiResponse<IngredientDto>> UpdateV2Async(
+        Guid id,
+        UpdateIngredientFormRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var ingredient = await _dbContext.Ingredients
+            .FirstOrDefaultAsync(item => item.Id == id && !item.IsDeleted, cancellationToken);
+
+        if (ingredient is null)
+        {
+            return ApiResponse<IngredientDto>.Fail("Ingredient not found.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Name))
+        {
+            var normalizedName = ZPantryMappings.NormalizeName(request.Name);
+            var duplicateExists = await _dbContext.Ingredients.AnyAsync(
+                item => item.Id != id && !item.IsDeleted && item.NormalizedName == normalizedName,
+                cancellationToken);
+
+            if (duplicateExists)
+            {
+                return ApiResponse<IngredientDto>.Fail("Ingredient already exists.");
+            }
+
+            ingredient.Name = request.Name.Trim();
+            ingredient.NormalizedName = normalizedName;
+        }
+
+        if (request.Category != null)
+        {
+            ingredient.Category = request.Category;
+        }
+
+        if (request.Unit != null)
+        {
+            ingredient.Unit = request.Unit;
+        }
+
+        if (request.CaloriesPerUnit.HasValue)
+        {
+            ingredient.CaloriesPerUnit = request.CaloriesPerUnit;
+        }
+
+        if (request.ProteinPerUnit.HasValue)
+        {
+            ingredient.ProteinPerUnit = request.ProteinPerUnit;
+        }
+
+        if (request.FatPerUnit.HasValue)
+        {
+            ingredient.FatPerUnit = request.FatPerUnit;
+        }
+
+        if (request.CarbPerUnit.HasValue)
+        {
+            ingredient.CarbPerUnit = request.CarbPerUnit;
+        }
+
+        if (request.GradientFrom != null)
+        {
+            ingredient.GradientFrom = request.GradientFrom;
+        }
+
+        if (request.GradientTo != null)
+        {
+            ingredient.GradientTo = request.GradientTo;
+        }
+
+        if (request.ImageUrl != null)
+        {
+            ingredient.ImageUrl = request.ImageUrl;
+        }
+
+        ingredient.UpdatedAt = DateTime.UtcNow;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        if (request.ImageFile is not null && request.ImageFile.Length > 0)
+        {
+            await using var stream = request.ImageFile.OpenReadStream();
+            var uploadResponse = await _cloudinaryStorageService.UploadAsync(
+                stream,
+                request.ImageFile.FileName,
+                ingredientId: ingredient.Id,
+                cancellationToken: cancellationToken);
+
+            if (!uploadResponse.Success || string.IsNullOrWhiteSpace(uploadResponse.Data))
+            {
+                return ApiResponse<IngredientDto>.Fail(uploadResponse.Message ?? "Ingredient image upload failed.");
+            }
+
+            ingredient.ImageUrl = uploadResponse.Data;
+            ingredient.UpdatedAt = DateTime.UtcNow;
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        var embeddingResponse = await _aiRecommendationClient.EmbedIngredientAsync(
+            new EmbedIngredientAiRequest
+            {
+                IngredientId = ingredient.Id,
+                Name = ingredient.Name,
+                NormalizedName = ingredient.NormalizedName,
+                Category = ingredient.Category
+            },
+            cancellationToken);
+
+        if (embeddingResponse.Success && embeddingResponse.Data?.Embedding.Count > 0)
+        {
+            ingredient.Embedding = embeddingResponse.Data.Embedding.ToArray();
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
 
         return ApiResponse<IngredientDto>.SuccessResponse(ingredient.ToDto(), "Ingredient updated.");
     }
