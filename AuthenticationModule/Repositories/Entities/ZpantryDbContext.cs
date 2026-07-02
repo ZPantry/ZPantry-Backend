@@ -47,7 +47,7 @@ public partial class ZpantryDbContext : DbContext
             var strConn = config["ConnectionStrings:DefaultConnection"];
             if (!string.IsNullOrEmpty(strConn))
             {
-                optionsBuilder.UseNpgsql(strConn);
+                optionsBuilder.UseNpgsql(strConn).UseSnakeCaseNamingConvention();
             }
         }
     }

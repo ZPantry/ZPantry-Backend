@@ -28,7 +28,7 @@ public class MediaController : ControllerBase
             request.RecipeId);
     }
 
-    [HttpDelete("{id:guid}")]
-    public Task<ApiResponse<object>> Delete(Guid id)
-        => _cloudinaryStorageService.DeleteAsync(id.ToString());
+    [HttpDelete]
+    public Task<ApiResponse<object>> Delete([FromQuery] string publicId)
+        => _cloudinaryStorageService.DeleteAsync(publicId);
 }

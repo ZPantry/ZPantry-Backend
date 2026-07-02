@@ -112,11 +112,6 @@ public class IngredientService : IIngredientService
         UpdateIngredientRequest request,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(request.Name))
-        {
-            return ApiResponse<IngredientDto>.Fail("Ingredient name is required.");
-        }
-
         var ingredient = await _dbContext.Ingredients
             .FirstOrDefaultAsync(item => item.Id == id && !item.IsDeleted, cancellationToken);
 
@@ -125,27 +120,57 @@ public class IngredientService : IIngredientService
             return ApiResponse<IngredientDto>.Fail("Ingredient not found.");
         }
 
-        var normalizedName = ZPantryMappings.NormalizeName(request.Name);
-        var duplicateExists = await _dbContext.Ingredients.AnyAsync(
-            item => item.Id != id && !item.IsDeleted && item.NormalizedName == normalizedName,
-            cancellationToken);
-
-        if (duplicateExists)
+        if (!string.IsNullOrWhiteSpace(request.Name))
         {
-            return ApiResponse<IngredientDto>.Fail("Ingredient already exists.");
+            var normalizedName = ZPantryMappings.NormalizeName(request.Name);
+            var duplicateExists = await _dbContext.Ingredients.AnyAsync(
+                item => item.Id != id && !item.IsDeleted && item.NormalizedName == normalizedName,
+                cancellationToken);
+
+            if (duplicateExists)
+            {
+                return ApiResponse<IngredientDto>.Fail("Ingredient already exists.");
+            }
+
+            ingredient.Name = request.Name.Trim();
+            ingredient.NormalizedName = normalizedName;
         }
 
-        ingredient.Name = request.Name.Trim();
-        ingredient.NormalizedName = normalizedName;
-        ingredient.Category = request.Category;
-        ingredient.Unit = request.Unit;
-        ingredient.CaloriesPerUnit = request.CaloriesPerUnit;
-        ingredient.ProteinPerUnit = request.ProteinPerUnit;
-        ingredient.FatPerUnit = request.FatPerUnit;
-        ingredient.CarbPerUnit = request.CarbPerUnit;
-        ingredient.ImageUrl = request.ImageUrl;
-        ingredient.GradientFrom = request.GradientFrom ?? ColorGradient.Generate(request.Name, request.Category).From;
-        ingredient.GradientTo = request.GradientTo ?? ColorGradient.Generate(request.Name, request.Category).To;
+        if (request.Category != null)
+        {
+            ingredient.Category = request.Category;
+        }
+
+        if (request.Unit != null)
+        {
+            ingredient.Unit = request.Unit;
+        }
+
+        if (request.CaloriesPerUnit.HasValue)
+        {
+            ingredient.CaloriesPerUnit = request.CaloriesPerUnit;
+        }
+
+        if (request.ProteinPerUnit.HasValue)
+        {
+            ingredient.ProteinPerUnit = request.ProteinPerUnit;
+        }
+
+        if (request.FatPerUnit.HasValue)
+        {
+            ingredient.FatPerUnit = request.FatPerUnit;
+        }
+
+        if (request.CarbPerUnit.HasValue)
+        {
+            ingredient.CarbPerUnit = request.CarbPerUnit;
+        }
+
+        if (request.ImageUrl != null)
+        {
+            ingredient.ImageUrl = request.ImageUrl;
+        }
+
         ingredient.UpdatedAt = DateTime.UtcNow;
 
         var embeddingResponse = await _aiRecommendationClient.EmbedIngredientAsync(

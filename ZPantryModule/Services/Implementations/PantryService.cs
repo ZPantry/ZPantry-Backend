@@ -62,12 +62,25 @@ public class PantryService : IUserPantryService
             pantryItem = new UserPantryItem
             {
                 UserId = userId,
-                IngredientId = request.IngredientId
+                IngredientId = request.IngredientId,
+                Quantity = request.Quantity,
+                Unit = request.Unit,
+                ExpiredAt = request.ExpiredAt,
+                StorageLocation = request.StorageLocation,
+                Note = request.Note
             };
             _dbContext.UserPantryItems.Add(pantryItem);
         }
+        else
+        {
+            if (request.Quantity.HasValue) pantryItem.Quantity = request.Quantity;
+            if (request.Unit != null) pantryItem.Unit = request.Unit;
+            if (request.ExpiredAt.HasValue) pantryItem.ExpiredAt = request.ExpiredAt;
+            if (request.StorageLocation != null) pantryItem.StorageLocation = request.StorageLocation;
+            if (request.Note != null) pantryItem.Note = request.Note;
+            pantryItem.UpdatedAt = DateTime.UtcNow;
+        }
 
-        ApplyRequest(pantryItem, request);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         return ApiResponse<PantryItemDto>.SuccessResponse(pantryItem.ToDto(), "Pantry item saved.");
@@ -76,7 +89,7 @@ public class PantryService : IUserPantryService
     public async Task<ApiResponse<PantryItemDto>> UpdateAsync(
         Guid userId,
         Guid itemId,
-        UpsertPantryItemRequest request,
+        UpdatePantryItemRequest request,
         CancellationToken cancellationToken = default)
     {
         var pantryItem = await _dbContext.UserPantryItems.FirstOrDefaultAsync(
@@ -88,13 +101,37 @@ public class PantryService : IUserPantryService
             return ApiResponse<PantryItemDto>.Fail("Pantry item not found.");
         }
 
-        if (request.IngredientId == Guid.Empty)
+        if (request.IngredientId.HasValue && request.IngredientId.Value != Guid.Empty)
         {
-            return ApiResponse<PantryItemDto>.Fail("IngredientId is required.");
+            pantryItem.IngredientId = request.IngredientId.Value;
         }
 
-        pantryItem.IngredientId = request.IngredientId;
-        ApplyRequest(pantryItem, request);
+        if (request.Quantity.HasValue)
+        {
+            pantryItem.Quantity = request.Quantity;
+        }
+
+        if (request.Unit != null)
+        {
+            pantryItem.Unit = request.Unit;
+        }
+
+        if (request.ExpiredAt.HasValue)
+        {
+            pantryItem.ExpiredAt = request.ExpiredAt;
+        }
+
+        if (request.StorageLocation != null)
+        {
+            pantryItem.StorageLocation = request.StorageLocation;
+        }
+
+        if (request.Note != null)
+        {
+            pantryItem.Note = request.Note;
+        }
+
+        pantryItem.UpdatedAt = DateTime.UtcNow;
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         return ApiResponse<PantryItemDto>.SuccessResponse(pantryItem.ToDto(), "Pantry item updated.");
@@ -118,15 +155,5 @@ public class PantryService : IUserPantryService
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         return ApiResponse<object>.SuccessResponse(null, "Pantry item deleted.");
-    }
-
-    private static void ApplyRequest(UserPantryItem pantryItem, UpsertPantryItemRequest request)
-    {
-        pantryItem.Quantity = request.Quantity;
-        pantryItem.Unit = request.Unit;
-        pantryItem.ExpiredAt = request.ExpiredAt;
-        pantryItem.StorageLocation = request.StorageLocation;
-        pantryItem.Note = request.Note;
-        pantryItem.UpdatedAt = DateTime.UtcNow;
     }
 }

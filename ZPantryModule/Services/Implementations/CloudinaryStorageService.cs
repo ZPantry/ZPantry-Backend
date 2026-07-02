@@ -4,6 +4,8 @@ using System.Text.Json;
 using AuthenticationModule.Contracts.Common;
 using AuthenticationModule.Repositories.Entities;
 using Microsoft.EntityFrameworkCore;
+using CloudinaryDotNet;
+using CloudinaryDotNet.Actions;
 using Microsoft.Extensions.Configuration;
 using ZPantryModule.Services.Interfaces;
 
@@ -48,96 +50,94 @@ public class CloudinaryStorageService : ICloudinaryStorageService
             return ApiResponse<string>.Fail("Uploaded file is empty.");
         }
 
-        var linkedIngredient = ingredientId.HasValue
-            ? await _dbContext.Ingredients.FirstOrDefaultAsync(
-                ingredient => ingredient.Id == ingredientId.Value && !ingredient.IsDeleted,
-                cancellationToken)
-            : null;
-
-        if (ingredientId.HasValue && linkedIngredient is null)
+        try
         {
-            return ApiResponse<string>.Fail("Ingredient not found.");
-        }
+            var linkedIngredient = ingredientId.HasValue
+                ? await _dbContext.Ingredients.FirstOrDefaultAsync(
+                    ingredient => ingredient.Id == ingredientId.Value && !ingredient.IsDeleted,
+                    cancellationToken)
+                : null;
 
-        var linkedRecipe = recipeId.HasValue
-            ? await _dbContext.Recipes.FirstOrDefaultAsync(
-                recipe => recipe.Id == recipeId.Value && !recipe.IsDeleted,
-                cancellationToken)
-            : null;
-
-        if (recipeId.HasValue && linkedRecipe is null)
-        {
-            return ApiResponse<string>.Fail("Recipe not found.");
-        }
-
-        var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
-        const string folder = "zpantry";
-        var signature = CreateSignature(
-            new Dictionary<string, string>
+            if (ingredientId.HasValue && linkedIngredient is null)
             {
-                ["folder"] = folder,
-                ["timestamp"] = timestamp
-            },
-            settings.ApiSecret);
+                return ApiResponse<string>.Fail("Ingredient not found.");
+            }
 
-        using var content = new MultipartFormDataContent
-        {
-            { new StringContent(settings.ApiKey), "api_key" },
-            { new StringContent(timestamp), "timestamp" },
-            { new StringContent(folder), "folder" },
-            { new StringContent(signature), "signature" }
-        };
+            var linkedRecipe = recipeId.HasValue
+                ? await _dbContext.Recipes.FirstOrDefaultAsync(
+                    recipe => recipe.Id == recipeId.Value && !recipe.IsDeleted,
+                    cancellationToken)
+                : null;
 
-        content.Add(new StreamContent(fileStream), "file", fileName);
+            if (recipeId.HasValue && linkedRecipe is null)
+            {
+                return ApiResponse<string>.Fail("Recipe not found.");
+            }
 
-        var client = _httpClientFactory.CreateClient();
-        using var response = await client.PostAsync(
-            $"https://api.cloudinary.com/v1_1/{settings.CloudName}/image/upload",
-            content,
-            cancellationToken);
+            var cloudinary = GetCloudinaryClient();
+            var uploadParams = new ImageUploadParams
+            {
+                File = new FileDescription(fileName, fileStream)
+            };
 
-        var responseText = await response.Content.ReadAsStringAsync(cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            return ApiResponse<string>.Fail($"Cloudinary upload failed: {responseText}");
+            var preset = GetPresetName();
+            if (!string.IsNullOrWhiteSpace(preset))
+            {
+                uploadParams.UploadPreset = preset;
+            }
+            else
+            {
+                uploadParams.Folder = "zpantry";
+            }
+
+            var uploadResult = await cloudinary.UploadAsync(uploadParams, cancellationToken);
+
+            if (uploadResult.Error != null)
+            {
+                return ApiResponse<string>.Fail($"Cloudinary upload failed: {uploadResult.Error.Message}");
+            }
+
+            var secureUrl = uploadResult.SecureUrl?.ToString();
+            if (string.IsNullOrWhiteSpace(secureUrl))
+            {
+                return ApiResponse<string>.Fail("Cloudinary upload response did not contain a secure URL.");
+            }
+
+            var mediaAsset = new MediaAsset
+            {
+                IngredientId = ingredientId,
+                RecipeId = recipeId,
+                PublicId = uploadResult.PublicId ?? string.Empty,
+                Url = uploadResult.Url?.ToString() ?? string.Empty,
+                SecureUrl = secureUrl,
+                ResourceType = uploadResult.ResourceType,
+                Format = uploadResult.Format,
+                Width = uploadResult.Width,
+                Height = uploadResult.Height
+            };
+
+            _dbContext.MediaAssets.Add(mediaAsset);
+
+            if (linkedIngredient is not null)
+            {
+                linkedIngredient.ImageUrl = secureUrl;
+                linkedIngredient.UpdatedAt = DateTime.UtcNow;
+            }
+
+            if (linkedRecipe is not null)
+            {
+                linkedRecipe.ImageUrl = secureUrl;
+                linkedRecipe.UpdatedAt = DateTime.UtcNow;
+            }
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            return ApiResponse<string>.SuccessResponse(secureUrl, "Media uploaded.");
         }
-
-        var uploadResult = ParseUploadResult(responseText);
-        if (string.IsNullOrWhiteSpace(uploadResult.SecureUrl))
+        catch (Exception ex)
         {
-            return ApiResponse<string>.Fail("Cloudinary upload response did not contain a secure URL.");
+            return ApiResponse<string>.Fail($"Exception during upload: {ex.Message}");
         }
-
-        var mediaAsset = new MediaAsset
-        {
-            IngredientId = ingredientId,
-            RecipeId = recipeId,
-            PublicId = uploadResult.PublicId,
-            Url = uploadResult.Url,
-            SecureUrl = uploadResult.SecureUrl,
-            ResourceType = uploadResult.ResourceType,
-            Format = uploadResult.Format,
-            Width = uploadResult.Width,
-            Height = uploadResult.Height
-        };
-
-        _dbContext.MediaAssets.Add(mediaAsset);
-
-        if (linkedIngredient is not null)
-        {
-            linkedIngredient.ImageUrl = uploadResult.SecureUrl;
-            linkedIngredient.UpdatedAt = DateTime.UtcNow;
-        }
-
-        if (linkedRecipe is not null)
-        {
-            linkedRecipe.ImageUrl = uploadResult.SecureUrl;
-            linkedRecipe.UpdatedAt = DateTime.UtcNow;
-        }
-
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        return ApiResponse<string>.SuccessResponse(uploadResult.SecureUrl, "Media uploaded.");
     }
 
     public async Task<ApiResponse<object>> DeleteAsync(string publicId, CancellationToken cancellationToken = default)
@@ -153,53 +153,78 @@ public class CloudinaryStorageService : ICloudinaryStorageService
             return ApiResponse<object>.Fail("PublicId is required.");
         }
 
-        var mediaAsset = Guid.TryParse(publicId, out var mediaAssetId)
-            ? await _dbContext.MediaAssets.FirstOrDefaultAsync(
-                asset => asset.Id == mediaAssetId && !asset.IsDeleted,
-                cancellationToken)
-            : await _dbContext.MediaAssets.FirstOrDefaultAsync(
-                asset => asset.PublicId == publicId && !asset.IsDeleted,
-                cancellationToken);
+        try
+        {
+            var mediaAsset = Guid.TryParse(publicId, out var mediaAssetId)
+                ? await _dbContext.MediaAssets.FirstOrDefaultAsync(
+                    asset => asset.Id == mediaAssetId && !asset.IsDeleted,
+                    cancellationToken)
+                : await _dbContext.MediaAssets.FirstOrDefaultAsync(
+                    asset => asset.PublicId == publicId && !asset.IsDeleted,
+                    cancellationToken);
 
-        var cloudinaryPublicId = mediaAsset?.PublicId ?? publicId;
-        var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
-        var signature = CreateSignature(
-            new Dictionary<string, string>
+            var cloudinary = GetCloudinaryClient();
+            var deletionParams = new DeletionParams(mediaAsset?.PublicId ?? publicId);
+            var result = await cloudinary.DestroyAsync(deletionParams);
+
+            if (result.Result == "ok" || result.Result == "not found")
             {
-                ["public_id"] = cloudinaryPublicId,
-                ["timestamp"] = timestamp
-            },
-            settings.ApiSecret);
+                if (mediaAsset is not null)
+                {
+                    await ClearLinkedImageAsync(mediaAsset, cancellationToken);
+                    mediaAsset.SoftDelete();
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                }
 
-        using var content = new MultipartFormDataContent
-        {
-            { new StringContent(settings.ApiKey), "api_key" },
-            { new StringContent(timestamp), "timestamp" },
-            { new StringContent(cloudinaryPublicId), "public_id" },
-            { new StringContent(signature), "signature" }
-        };
+                return ApiResponse<object>.SuccessResponse(null, "File deleted successfully.");
+            }
 
-        var client = _httpClientFactory.CreateClient();
-        using var response = await client.PostAsync(
-            $"https://api.cloudinary.com/v1_1/{settings.CloudName}/image/destroy",
-            content,
-            cancellationToken);
-
-        var responseText = await response.Content.ReadAsStringAsync(cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            return ApiResponse<object>.Fail($"Cloudinary delete failed: {responseText}");
+            return ApiResponse<object>.Fail($"Cloudinary delete failed: {result.Result}");
         }
-
-        if (mediaAsset is not null)
+        catch (Exception ex)
         {
-            await ClearLinkedImageAsync(mediaAsset, cancellationToken);
-            mediaAsset.SoftDelete();
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            return ApiResponse<object>.Fail($"Exception during delete: {ex.Message}");
         }
-
-        return ApiResponse<object>.SuccessResponse(null, "Media deleted.");
     }
+
+    private Cloudinary GetCloudinaryClient()
+    {
+        var account = new Account(GetCloudName(), GetApiKey(), GetApiSecret());
+        return new Cloudinary(account);
+    }
+
+    private string GetCloudName()
+        => _configuration["Cloudinary_Name"] ?? _configuration["CLOUDINARY_CLOUD_NAME"] ?? _configuration["Cloudinary:Name"] ?? string.Empty;
+
+    private string GetApiKey()
+        => _configuration["Cloudinary_API_Key"] ?? _configuration["CLOUDINARY_API_KEY"] ?? _configuration["Cloudinary:ApiKey"] ?? string.Empty;
+
+    private string GetApiSecret()
+        => _configuration["Cloudinary_API_Secret"] ?? _configuration["CLOUDINARY_API_SECRET"] ?? _configuration["Cloudinary:ApiSecret"] ?? string.Empty;
+
+    private string GetPresetName()
+        => _configuration["Cloudinary_PresetName"] ?? _configuration["CLOUDINARY_PRESET_NAME"] ?? _configuration["Cloudinary:PresetName"] ?? string.Empty;
+
+    private CloudinarySettings? GetSettings()
+    {
+        var cloudName = GetCloudName();
+        var apiKey = GetApiKey();
+        var apiSecret = GetApiSecret();
+
+        if (string.IsNullOrWhiteSpace(cloudName)
+            || string.IsNullOrWhiteSpace(apiKey)
+            || string.IsNullOrWhiteSpace(apiSecret))
+        {
+            return null;
+        }
+
+        return new CloudinarySettings(cloudName, apiKey, apiSecret);
+    }
+
+    private bool IsConfigured()
+        => !string.IsNullOrWhiteSpace(GetCloudName())
+            && !string.IsNullOrWhiteSpace(GetApiKey())
+            && !string.IsNullOrWhiteSpace(GetApiSecret());
 
     private async Task ClearLinkedImageAsync(MediaAsset mediaAsset, CancellationToken cancellationToken)
     {
@@ -230,65 +255,5 @@ public class CloudinaryStorageService : ICloudinaryStorageService
         }
     }
 
-    private CloudinarySettings? GetSettings()
-    {
-        var cloudName = _configuration["CLOUDINARY_CLOUD_NAME"];
-        var apiKey = _configuration["CLOUDINARY_API_KEY"];
-        var apiSecret = _configuration["CLOUDINARY_API_SECRET"];
-
-        if (string.IsNullOrWhiteSpace(cloudName)
-            || string.IsNullOrWhiteSpace(apiKey)
-            || string.IsNullOrWhiteSpace(apiSecret))
-        {
-            return null;
-        }
-
-        return new CloudinarySettings(cloudName, apiKey, apiSecret);
-    }
-
-    private static string CreateSignature(IReadOnlyDictionary<string, string> parameters, string apiSecret)
-    {
-        var payload = string.Join("&", parameters
-            .OrderBy(parameter => parameter.Key, StringComparer.Ordinal)
-            .Select(parameter => $"{parameter.Key}={parameter.Value}"));
-
-        var bytes = SHA1.HashData(Encoding.UTF8.GetBytes(payload + apiSecret));
-        return Convert.ToHexString(bytes).ToLowerInvariant();
-    }
-
-    private static CloudinaryUploadResult ParseUploadResult(string responseText)
-    {
-        using var document = JsonDocument.Parse(responseText);
-        var root = document.RootElement;
-
-        return new CloudinaryUploadResult(
-            GetString(root, "public_id"),
-            GetString(root, "url"),
-            GetString(root, "secure_url"),
-            GetString(root, "resource_type"),
-            GetString(root, "format"),
-            GetInt(root, "width"),
-            GetInt(root, "height"));
-    }
-
-    private static string GetString(JsonElement root, string propertyName)
-        => root.TryGetProperty(propertyName, out var property)
-            ? property.GetString() ?? string.Empty
-            : string.Empty;
-
-    private static int? GetInt(JsonElement root, string propertyName)
-        => root.TryGetProperty(propertyName, out var property) && property.TryGetInt32(out var value)
-            ? value
-            : null;
-
     private sealed record CloudinarySettings(string CloudName, string ApiKey, string ApiSecret);
-
-    private sealed record CloudinaryUploadResult(
-        string PublicId,
-        string Url,
-        string SecureUrl,
-        string ResourceType,
-        string Format,
-        int? Width,
-        int? Height);
 }

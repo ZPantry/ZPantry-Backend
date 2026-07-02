@@ -14,5 +14,9 @@
     <ProjectReference Include="..\AuthenticationModule\AuthenticationModule.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="CloudinaryDotNet" Version="1.29.2" />
+  </ItemGroup>
+
 </Project>
 

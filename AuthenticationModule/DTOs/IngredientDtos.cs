@@ -50,6 +50,21 @@ public class CreateIngredientRequest
     public string? GradientTo { get; set; }
 }
 
-public class UpdateIngredientRequest : CreateIngredientRequest
+public class UpdateIngredientRequest
 {
+    public string? Name { get; set; }
+
+    public string? Category { get; set; }
+
+    public string? Unit { get; set; }
+
+    public decimal? CaloriesPerUnit { get; set; }
+
+    public decimal? ProteinPerUnit { get; set; }
+
+    public decimal? FatPerUnit { get; set; }
+
+    public decimal? CarbPerUnit { get; set; }
+
+    public string? ImageUrl { get; set; }
 }

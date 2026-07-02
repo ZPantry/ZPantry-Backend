@@ -48,7 +48,7 @@ public class PantryController : ControllerBase
     [HttpPut("items/{itemId:guid}")]
     public async Task<ActionResult<ApiResponse<PantryItemDto>>> Update(
         Guid itemId,
-        [FromBody] UpsertPantryItemRequest request)
+        [FromBody] UpdatePantryItemRequest request)
     {
         var userId = GetCurrentUserId();
         if (userId is null)
