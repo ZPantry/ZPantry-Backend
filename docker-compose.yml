@@ -16,47 +16,22 @@ services:
       timeout: 5s
       retries: 10
 
-  ai-service:
-    build:
-      context: ./ZPantry-AIService
-      dockerfile: Dockerfile
-    container_name: zpantry-ai-dev
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
-    volumes:
-      - ./ZPantry-AIService:/app
-    ports:
-      - "8000:8000"
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/ai/health')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   backend:
     build:
       context: .
-      dockerfile: ZPantry_Backend/Dockerfile
-      target: dev
-    container_name: zpantry-backend-dev
+      dockerfile: Dockerfile
+    container_name: zpantry-backend
     env_file:
       - .env
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://0.0.0.0:8080
       ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=zpantry;Username=zpantry;Password=password
-      AI_SERVICE_URL: http://ai-service:8000
-    volumes:
-      - .:/src
-      - backend_nuget:/root/.nuget/packages
     ports:
       - "8080:8080"
-      - "8081:8081"
     depends_on:
       postgres:
-        condition: service_healthy
-      ai-service:
         condition: service_healthy
 
 volumes:
   postgres_data:
-  backend_nuget:
