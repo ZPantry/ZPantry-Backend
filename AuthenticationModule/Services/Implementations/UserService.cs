@@ -1,3 +1,4 @@
+using AuthenticationModule.Contracts.Common;
 using AuthenticationModule.DTOs;
 using AuthenticationModule.Repositories.Entities;
 using AuthenticationModule.Repositories.Interfaces;
@@ -287,4 +288,87 @@ public class UserService : IUserService
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken));
         return Convert.ToHexString(bytes);
     }
+
+    public async Task<PagedResponse<UserDto>> GetAllUsersAsync(int pageIndex, int pageSize)
+    {
+        var normalizedPageIndex = Math.Max(pageIndex, 1);
+        var normalizedPageSize = Math.Clamp(pageSize, 1, 100);
+
+        var users = await _userRepository.GetPagedUsers(normalizedPageIndex, normalizedPageSize);
+        var totalItems = await _userRepository.CountUsers();
+
+        var dtos = users.Select(ToDto).ToList();
+        return PagedResponse<UserDto>.SuccessPage(
+            dtos,
+            normalizedPageIndex,
+            normalizedPageSize,
+            totalItems);
+    }
+
+    public async Task<ApiResponse<UserDto>> GetUserByIdAsync(Guid id)
+    {
+        var user = await _userRepository.GetUserById(id);
+        if (user is null)
+        {
+            return ApiResponse<UserDto>.Fail("User not found.");
+        }
+
+        return ApiResponse<UserDto>.SuccessResponse(ToDto(user));
+    }
+
+    public async Task<ApiResponse<UserDto>> UpdateUserAsync(Guid id, UpdateUserRequest request)
+    {
+        var user = await _userRepository.GetUserById(id);
+        if (user is null)
+        {
+            return ApiResponse<UserDto>.Fail("User not found.");
+        }
+
+        if (request.FullName != null)
+        {
+            user.FullName = request.FullName;
+        }
+
+        if (request.AvatarUrl != null)
+        {
+            user.AvatarUrl = request.AvatarUrl;
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Password))
+        {
+            user.PasswordHashed = new PasswordHasher().HashPassword(request.Password);
+        }
+
+        user.UpdatedAt = DateTime.UtcNow;
+        await _userRepository.UpdateUser(user);
+
+        return ApiResponse<UserDto>.SuccessResponse(ToDto(user), "User updated successfully.");
+    }
+
+    public async Task<ApiResponse<object>> DeleteUserAsync(Guid id)
+    {
+        var user = await _userRepository.GetUserById(id);
+        if (user is null)
+        {
+            return ApiResponse<object>.Fail("User not found.");
+        }
+
+        await _userRepository.DeleteUser(user);
+
+        return ApiResponse<object>.SuccessResponse(null, "User deleted successfully.");
+    }
+
+    private static UserDto ToDto(User user)
+        => new()
+        {
+            Id = user.Id,
+            FullName = user.FullName,
+            Email = user.Email,
+            AvatarUrl = user.AvatarUrl,
+            IsEmailConfirmed = user.IsEmailConfirmed,
+            IsActive = user.IsActive,
+            Role = user.Role,
+            CreatedAt = user.CreatedAt,
+            UpdatedAt = user.UpdatedAt
+        };
 }

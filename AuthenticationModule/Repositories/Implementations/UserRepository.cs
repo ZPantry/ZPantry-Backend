@@ -44,5 +44,26 @@ namespace AuthenticationModule.Repositories.Implementations
         {
             return await _context.Users.FirstOrDefaultAsync(us => us.RefreshTokenHash == refreshTokenHash && !us.IsDeleted);
         }
+
+        public async Task<User?> GetUserById(Guid id)
+        {
+            return await _context.Users.FirstOrDefaultAsync(us => us.Id == id && !us.IsDeleted);
+        }
+
+        public async Task<List<User>> GetPagedUsers(int pageIndex, int pageSize)
+        {
+            return await _context.Users
+                .AsNoTracking()
+                .Where(us => !us.IsDeleted)
+                .OrderBy(us => us.Email)
+                .Skip((pageIndex - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+        }
+
+        public async Task<int> CountUsers()
+        {
+            return await _context.Users.CountAsync(us => !us.IsDeleted);
+        }
     }
 }
