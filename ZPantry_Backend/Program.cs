@@ -179,7 +179,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ZpantryDbContext>();
-    await dbContext.Database.MigrateAsync();
+    await ApplyDatabaseSchemaAsync(dbContext, builder.Configuration);
 }
 
 await RunEmbeddingBackfillAsync(app.Services, builder.Configuration);
@@ -247,6 +247,34 @@ static async Task EnsureDemoAccountsAsync(IServiceProvider services, IConfigurat
         };
 
         await userRepository.AddUser(user);
+    }
+}
+
+static async Task ApplyDatabaseSchemaAsync(ZpantryDbContext dbContext, IConfiguration configuration)
+{
+    var schemaMode = (configuration["Database:SchemaMode"]
+        ?? configuration["Database__SchemaMode"]
+        ?? "update")
+        .Trim()
+        .ToLowerInvariant();
+
+    switch (schemaMode)
+    {
+        case "update":
+        case "migrate":
+            await dbContext.Database.MigrateAsync();
+            return;
+        case "create":
+        case "create-drop":
+        case "createdrop":
+        case "drop-create":
+        case "dropcreate":
+            await dbContext.Database.EnsureDeletedAsync();
+            await dbContext.Database.MigrateAsync();
+            return;
+        default:
+            throw new InvalidOperationException(
+                $"Unsupported Database:SchemaMode value '{schemaMode}'. Use 'update' or 'create-drop'.");
     }
 }
 
