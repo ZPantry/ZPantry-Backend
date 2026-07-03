@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using AuthenticationModule.Contracts.Common;
+using AuthenticationModule.DTOs;
 using AuthenticationModule.Repositories.Entities;
 using Microsoft.EntityFrameworkCore;
 using CloudinaryDotNet;
@@ -27,7 +28,7 @@ public class CloudinaryStorageService : ICloudinaryStorageService
         _dbContext = dbContext;
     }
 
-    public async Task<ApiResponse<string>> UploadAsync(
+    public async Task<ApiResponse<MediaUploadResultDto>> UploadDetailedAsync(
         Stream fileStream,
         string fileName,
         Guid? ingredientId = null,
@@ -37,17 +38,17 @@ public class CloudinaryStorageService : ICloudinaryStorageService
         var settings = GetSettings();
         if (settings is null)
         {
-            return ApiResponse<string>.Fail("Cloudinary configuration is missing.");
+            return ApiResponse<MediaUploadResultDto>.Fail("Cloudinary configuration is missing.");
         }
 
         if (ingredientId.HasValue && recipeId.HasValue)
         {
-            return ApiResponse<string>.Fail("Upload can be linked to either an ingredient or a recipe, not both.");
+            return ApiResponse<MediaUploadResultDto>.Fail("Upload can be linked to either an ingredient or a recipe, not both.");
         }
 
         if (fileStream.CanSeek && fileStream.Length == 0)
         {
-            return ApiResponse<string>.Fail("Uploaded file is empty.");
+            return ApiResponse<MediaUploadResultDto>.Fail("Uploaded file is empty.");
         }
 
         try
@@ -60,7 +61,7 @@ public class CloudinaryStorageService : ICloudinaryStorageService
 
             if (ingredientId.HasValue && linkedIngredient is null)
             {
-                return ApiResponse<string>.Fail("Ingredient not found.");
+                return ApiResponse<MediaUploadResultDto>.Fail("Ingredient not found.");
             }
 
             var linkedRecipe = recipeId.HasValue
@@ -71,45 +72,23 @@ public class CloudinaryStorageService : ICloudinaryStorageService
 
             if (recipeId.HasValue && linkedRecipe is null)
             {
-                return ApiResponse<string>.Fail("Recipe not found.");
+                return ApiResponse<MediaUploadResultDto>.Fail("Recipe not found.");
             }
 
-            var cloudinary = GetCloudinaryClient();
-            var uploadParams = new ImageUploadParams
+            var result = await UploadToCloudinaryAsync(fileStream, fileName, cancellationToken);
+            if (!result.Success || result.Data is null)
             {
-                File = new FileDescription(fileName, fileStream)
-            };
-
-            var preset = GetPresetName();
-            if (!string.IsNullOrWhiteSpace(preset))
-            {
-                uploadParams.UploadPreset = preset;
-            }
-            else
-            {
-                uploadParams.Folder = "zpantry";
+                return ApiResponse<MediaUploadResultDto>.Fail(result.Message, result.Errors, result.TraceId);
             }
 
-            var uploadResult = await cloudinary.UploadAsync(uploadParams, cancellationToken);
-
-            if (uploadResult.Error != null)
-            {
-                return ApiResponse<string>.Fail($"Cloudinary upload failed: {uploadResult.Error.Message}");
-            }
-
-            var secureUrl = uploadResult.SecureUrl?.ToString();
-            if (string.IsNullOrWhiteSpace(secureUrl))
-            {
-                return ApiResponse<string>.Fail("Cloudinary upload response did not contain a secure URL.");
-            }
-
+            var uploadResult = result.Data;
             var mediaAsset = new MediaAsset
             {
                 IngredientId = ingredientId,
                 RecipeId = recipeId,
-                PublicId = uploadResult.PublicId ?? string.Empty,
-                Url = uploadResult.Url?.ToString() ?? string.Empty,
-                SecureUrl = secureUrl,
+                PublicId = uploadResult.PublicId,
+                Url = uploadResult.Url,
+                SecureUrl = uploadResult.SecureUrl,
                 ResourceType = uploadResult.ResourceType,
                 Format = uploadResult.Format,
                 Width = uploadResult.Width,
@@ -120,24 +99,52 @@ public class CloudinaryStorageService : ICloudinaryStorageService
 
             if (linkedIngredient is not null)
             {
-                linkedIngredient.ImageUrl = secureUrl;
+                linkedIngredient.ImageUrl = uploadResult.SecureUrl;
                 linkedIngredient.UpdatedAt = DateTime.UtcNow;
             }
 
             if (linkedRecipe is not null)
             {
-                linkedRecipe.ImageUrl = secureUrl;
+                linkedRecipe.ImageUrl = uploadResult.SecureUrl;
                 linkedRecipe.UpdatedAt = DateTime.UtcNow;
             }
 
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            return ApiResponse<string>.SuccessResponse(secureUrl, "Media uploaded.");
+            return ApiResponse<MediaUploadResultDto>.SuccessResponse(
+                new MediaUploadResultDto
+                {
+                    MediaAssetId = mediaAsset.Id,
+                    PublicId = mediaAsset.PublicId,
+                    Url = mediaAsset.Url,
+                    SecureUrl = mediaAsset.SecureUrl,
+                    ResourceType = mediaAsset.ResourceType,
+                    Format = mediaAsset.Format,
+                    Width = mediaAsset.Width,
+                    Height = mediaAsset.Height
+                },
+                "Media uploaded.");
         }
         catch (Exception ex)
         {
-            return ApiResponse<string>.Fail($"Exception during upload: {ex.Message}");
+            return ApiResponse<MediaUploadResultDto>.Fail($"Exception during upload: {ex.Message}");
         }
+    }
+
+    public async Task<ApiResponse<string>> UploadAsync(
+        Stream fileStream,
+        string fileName,
+        Guid? ingredientId = null,
+        Guid? recipeId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var detailed = await UploadDetailedAsync(fileStream, fileName, ingredientId, recipeId, cancellationToken);
+        if (!detailed.Success || detailed.Data is null)
+        {
+            return ApiResponse<string>.Fail(detailed.Message, detailed.Errors, detailed.TraceId);
+        }
+
+        return ApiResponse<string>.SuccessResponse(detailed.Data.SecureUrl, detailed.Message);
     }
 
     public async Task<ApiResponse<object>> DeleteAsync(string publicId, CancellationToken cancellationToken = default)
@@ -191,6 +198,61 @@ public class CloudinaryStorageService : ICloudinaryStorageService
     {
         var account = new Account(GetCloudName(), GetApiKey(), GetApiSecret());
         return new Cloudinary(account);
+    }
+
+    private async Task<ApiResponse<MediaUploadResultDto>> UploadToCloudinaryAsync(
+        Stream fileStream,
+        string fileName,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var cloudinary = GetCloudinaryClient();
+            var uploadParams = new ImageUploadParams
+            {
+                File = new FileDescription(fileName, fileStream)
+            };
+
+            var preset = GetPresetName();
+            if (!string.IsNullOrWhiteSpace(preset))
+            {
+                uploadParams.UploadPreset = preset;
+            }
+            else
+            {
+                uploadParams.Folder = "zpantry";
+            }
+
+            var uploadResult = await cloudinary.UploadAsync(uploadParams, cancellationToken);
+
+            if (uploadResult.Error != null)
+            {
+                return ApiResponse<MediaUploadResultDto>.Fail($"Cloudinary upload failed: {uploadResult.Error.Message}");
+            }
+
+            var secureUrl = uploadResult.SecureUrl?.ToString();
+            if (string.IsNullOrWhiteSpace(secureUrl))
+            {
+                return ApiResponse<MediaUploadResultDto>.Fail("Cloudinary upload response did not contain a secure URL.");
+            }
+
+            return ApiResponse<MediaUploadResultDto>.SuccessResponse(
+                new MediaUploadResultDto
+                {
+                    PublicId = uploadResult.PublicId ?? string.Empty,
+                    Url = uploadResult.Url?.ToString() ?? string.Empty,
+                    SecureUrl = secureUrl,
+                    ResourceType = uploadResult.ResourceType,
+                    Format = uploadResult.Format,
+                    Width = uploadResult.Width,
+                    Height = uploadResult.Height
+                },
+                "Media uploaded.");
+        }
+        catch (Exception ex)
+        {
+            return ApiResponse<MediaUploadResultDto>.Fail($"Exception during upload: {ex.Message}");
+        }
     }
 
     private string GetCloudName()

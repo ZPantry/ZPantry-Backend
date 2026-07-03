@@ -189,3 +189,66 @@ CREATE TABLE IF NOT EXISTS media_assets (
     height integer NULL
 );
 
+CREATE TABLE IF NOT EXISTS today_menu_items (
+    id uuid PRIMARY KEY,
+    created_at timestamptz NOT NULL,
+    created_by uuid NULL,
+    updated_at timestamptz NULL,
+    updated_by uuid NULL,
+    deleted_at timestamptz NULL,
+    deleted_by uuid NULL,
+    is_deleted boolean NOT NULL DEFAULT false,
+    user_id uuid NOT NULL,
+    meal_id uuid NULL,
+    recipe_id uuid NULL,
+    meal_name varchar(200) NOT NULL,
+    meal_type varchar(100) NULL,
+    serving_size integer NULL,
+    planned_date date NOT NULL,
+    status varchar(20) NOT NULL DEFAULT 'Planned',
+    note text NULL,
+    cooked_at timestamptz NULL,
+    image_url varchar(500) NULL,
+    image_public_id varchar(200) NULL
+);
+
+CREATE TABLE IF NOT EXISTS cooking_logs (
+    id uuid PRIMARY KEY,
+    created_at timestamptz NOT NULL,
+    created_by uuid NULL,
+    updated_at timestamptz NULL,
+    updated_by uuid NULL,
+    deleted_at timestamptz NULL,
+    deleted_by uuid NULL,
+    is_deleted boolean NOT NULL DEFAULT false,
+    user_id uuid NOT NULL,
+    today_menu_item_id uuid NOT NULL,
+    meal_id uuid NULL,
+    recipe_id uuid NULL,
+    meal_name varchar(200) NOT NULL,
+    image_url varchar(500) NULL,
+    image_public_id varchar(200) NULL,
+    cooked_at timestamptz NOT NULL,
+    rating integer NULL,
+    note text NULL
+);
+
+CREATE TABLE IF NOT EXISTS pantry_usage_logs (
+    id uuid PRIMARY KEY,
+    created_at timestamptz NOT NULL,
+    created_by uuid NULL,
+    updated_at timestamptz NULL,
+    updated_by uuid NULL,
+    deleted_at timestamptz NULL,
+    deleted_by uuid NULL,
+    is_deleted boolean NOT NULL DEFAULT false,
+    user_id uuid NOT NULL,
+    today_menu_item_id uuid NOT NULL,
+    cooking_log_id uuid NOT NULL,
+    ingredient_id uuid NOT NULL,
+    ingredient_name varchar(200) NOT NULL,
+    quantity_used numeric(18, 4) NULL,
+    unit varchar(50) NULL,
+    action_type varchar(50) NOT NULL DEFAULT 'consumed',
+    warning text NULL
+);

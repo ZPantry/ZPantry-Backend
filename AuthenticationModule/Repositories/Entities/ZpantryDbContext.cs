@@ -34,6 +34,12 @@ public partial class ZpantryDbContext : DbContext
 
     public virtual DbSet<MediaAsset> MediaAssets { get; set; }
 
+    public virtual DbSet<TodayMenuItem> TodayMenuItems { get; set; }
+
+    public virtual DbSet<CookingLog> CookingLogs { get; set; }
+
+    public virtual DbSet<PantryUsageLog> PantryUsageLogs { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
@@ -151,6 +157,43 @@ public partial class ZpantryDbContext : DbContext
             entity.Property(e => e.SecureUrl).HasMaxLength(500);
             entity.Property(e => e.ResourceType).HasMaxLength(50);
             entity.Property(e => e.Format).HasMaxLength(50);
+        });
+
+        modelBuilder.Entity<TodayMenuItem>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("today_menu_items");
+            entity.Property(e => e.MealName).HasMaxLength(200);
+            entity.Property(e => e.MealType).HasMaxLength(100);
+            entity.Property(e => e.PlannedDate).HasColumnType("date");
+            entity.Property(e => e.Note).HasColumnType("text");
+            entity.Property(e => e.ImageUrl).HasMaxLength(500);
+            entity.Property(e => e.ImagePublicId).HasMaxLength(200);
+            entity.Property(e => e.Status)
+                .HasConversion<string>()
+                .HasMaxLength(20)
+                .HasDefaultValue("Planned");
+        });
+
+        modelBuilder.Entity<CookingLog>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("cooking_logs");
+            entity.Property(e => e.MealName).HasMaxLength(200);
+            entity.Property(e => e.ImageUrl).HasMaxLength(500);
+            entity.Property(e => e.ImagePublicId).HasMaxLength(200);
+            entity.Property(e => e.Note).HasColumnType("text");
+        });
+
+        modelBuilder.Entity<PantryUsageLog>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("pantry_usage_logs");
+            entity.Property(e => e.IngredientName).HasMaxLength(200);
+            entity.Property(e => e.Unit).HasMaxLength(50);
+            entity.Property(e => e.ActionType).HasMaxLength(50);
+            entity.Property(e => e.QuantityUsed).HasColumnType("numeric(18,4)");
+            entity.Property(e => e.Warning).HasColumnType("text");
         });
 
         OnModelCreatingPartial(modelBuilder);

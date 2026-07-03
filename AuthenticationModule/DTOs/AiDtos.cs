@@ -75,6 +75,39 @@ public class MissingIngredientAiResponse
     public List<string> MissingIngredients { get; set; } = [];
 }
 
+public class TodayMenuCompletionAiMeal
+{
+    public string MealId { get; set; } = string.Empty;
+
+    public string MealName { get; set; } = string.Empty;
+}
+
+public class TodayMenuCompletionAiRequest
+{
+    public Guid UserId { get; set; }
+
+    public TodayMenuCompletionAiMeal Meal { get; set; } = new();
+
+    public List<MealIngredientCheckAiIngredient> RequiredIngredients { get; set; } = [];
+
+    public List<MealIngredientCheckAiIngredient> PantryIngredients { get; set; } = [];
+}
+
+public class TodayMenuCompletionAiResponse
+{
+    public string MealId { get; set; } = string.Empty;
+
+    public string MealName { get; set; } = string.Empty;
+
+    public List<MealIngredientCheckAiIngredient> AvailableIngredients { get; set; } = [];
+
+    public List<MealIngredientCheckAiIngredient> MissingIngredients { get; set; } = [];
+
+    public List<string> Warnings { get; set; } = [];
+
+    public string? Note { get; set; }
+}
+
 public class EmbedIngredientAiRequest
 {
     public Guid IngredientId { get; set; }
@@ -109,4 +142,3 @@ public class EmbeddingAiResponse
 
     public int Dimension { get; set; }
 }
-

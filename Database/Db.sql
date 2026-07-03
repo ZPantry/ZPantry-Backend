@@ -73,3 +73,74 @@ ALTER TABLE public."users" ALTER COLUMN "Role" SET DEFAULT 'user';
 
 -- Set database access to read/write explicitly
 ALTER DATABASE "ZPantryDb" SET default_transaction_read_only = off;
+
+-- =========================================================================================
+-- 4. TABLE CREATION: today menu, cooking logs, pantry usage logs
+-- =========================================================================================
+
+CREATE TABLE IF NOT EXISTS public."today_menu_items" (
+    "Id" UUID NOT NULL,
+    "CreatedAt" TIMESTAMP(6) WITH TIME ZONE NOT NULL,
+    "CreatedBy" UUID NULL,
+    "UpdatedAt" TIMESTAMP(6) WITH TIME ZONE NULL,
+    "UpdatedBy" UUID NULL,
+    "DeletedAt" TIMESTAMP(6) WITH TIME ZONE NULL,
+    "DeletedBy" UUID NULL,
+    "IsDeleted" BOOLEAN NOT NULL DEFAULT false,
+    "UserId" UUID NOT NULL,
+    "MealId" UUID NULL,
+    "RecipeId" UUID NULL,
+    "MealName" VARCHAR(200) NOT NULL,
+    "MealType" VARCHAR(100) NULL,
+    "ServingSize" INTEGER NULL,
+    "PlannedDate" DATE NOT NULL,
+    "Status" VARCHAR(20) NOT NULL DEFAULT 'Planned',
+    "Note" TEXT NULL,
+    "CookedAt" TIMESTAMP(6) WITH TIME ZONE NULL,
+    "ImageUrl" VARCHAR(500) NULL,
+    "ImagePublicId" VARCHAR(200) NULL,
+    CONSTRAINT "PK_today_menu_items" PRIMARY KEY ("Id")
+);
+
+CREATE TABLE IF NOT EXISTS public."cooking_logs" (
+    "Id" UUID NOT NULL,
+    "CreatedAt" TIMESTAMP(6) WITH TIME ZONE NOT NULL,
+    "CreatedBy" UUID NULL,
+    "UpdatedAt" TIMESTAMP(6) WITH TIME ZONE NULL,
+    "UpdatedBy" UUID NULL,
+    "DeletedAt" TIMESTAMP(6) WITH TIME ZONE NULL,
+    "DeletedBy" UUID NULL,
+    "IsDeleted" BOOLEAN NOT NULL DEFAULT false,
+    "UserId" UUID NOT NULL,
+    "TodayMenuItemId" UUID NOT NULL,
+    "MealId" UUID NULL,
+    "RecipeId" UUID NULL,
+    "MealName" VARCHAR(200) NOT NULL,
+    "ImageUrl" VARCHAR(500) NULL,
+    "ImagePublicId" VARCHAR(200) NULL,
+    "CookedAt" TIMESTAMP(6) WITH TIME ZONE NOT NULL,
+    "Rating" INTEGER NULL,
+    "Note" TEXT NULL,
+    CONSTRAINT "PK_cooking_logs" PRIMARY KEY ("Id")
+);
+
+CREATE TABLE IF NOT EXISTS public."pantry_usage_logs" (
+    "Id" UUID NOT NULL,
+    "CreatedAt" TIMESTAMP(6) WITH TIME ZONE NOT NULL,
+    "CreatedBy" UUID NULL,
+    "UpdatedAt" TIMESTAMP(6) WITH TIME ZONE NULL,
+    "UpdatedBy" UUID NULL,
+    "DeletedAt" TIMESTAMP(6) WITH TIME ZONE NULL,
+    "DeletedBy" UUID NULL,
+    "IsDeleted" BOOLEAN NOT NULL DEFAULT false,
+    "UserId" UUID NOT NULL,
+    "TodayMenuItemId" UUID NOT NULL,
+    "CookingLogId" UUID NOT NULL,
+    "IngredientId" UUID NOT NULL,
+    "IngredientName" VARCHAR(200) NOT NULL,
+    "QuantityUsed" NUMERIC(18, 4) NULL,
+    "Unit" VARCHAR(50) NULL,
+    "ActionType" VARCHAR(50) NOT NULL DEFAULT 'consumed',
+    "Warning" TEXT NULL,
+    CONSTRAINT "PK_pantry_usage_logs" PRIMARY KEY ("Id")
+);

@@ -40,6 +40,7 @@ builder.Services.AddScoped<ITokenBlacklistService, TokenBlacklistService>();
 builder.Services.AddScoped<IIngredientService, IngredientService>();
 builder.Services.AddScoped<IRecipeService, RecipeService>();
 builder.Services.AddScoped<IUserPantryService, PantryService>();
+builder.Services.AddScoped<ITodayMenuService, TodayMenuService>();
 builder.Services.AddScoped<IRecommendationService, RecommendationService>();
 builder.Services.AddScoped<ICloudinaryStorageService, CloudinaryStorageService>();
 builder.Services.AddScoped<IVectorSearchService, VectorSearchService>();
@@ -174,6 +175,7 @@ using (var scope = app.Services.CreateScope())
     var dbContext = scope.ServiceProvider.GetRequiredService<ZpantryDbContext>();
     await ApplyDatabaseSchemaModeAsync(dbContext, builder.Configuration);
     await EnsureGradientColumnsAsync(dbContext);
+    await EnsureTodayMenuSchemaAsync(dbContext);
 }
 
 await EnsureDemoAccountsAsync(app.Services, builder.Configuration);
@@ -278,6 +280,91 @@ static async Task EnsureGradientColumnsAsync(ZpantryDbContext dbContext)
         @"ALTER TABLE IF EXISTS ""ingredients"" ADD COLUMN IF NOT EXISTS ""GradientTo"" character varying(32);",
         @"ALTER TABLE IF EXISTS ""recipes"" ADD COLUMN IF NOT EXISTS ""GradientFrom"" character varying(32);",
         @"ALTER TABLE IF EXISTS ""recipes"" ADD COLUMN IF NOT EXISTS ""GradientTo"" character varying(32);"
+    };
+
+    foreach (var command in commands)
+    {
+        await dbContext.Database.ExecuteSqlRawAsync(command);
+    }
+}
+
+static async Task EnsureTodayMenuSchemaAsync(ZpantryDbContext dbContext)
+{
+    var commands = new[]
+    {
+        @"CREATE TABLE IF NOT EXISTS today_menu_items (
+            id uuid PRIMARY KEY,
+            created_at timestamptz NOT NULL,
+            created_by uuid NULL,
+            updated_at timestamptz NULL,
+            updated_by uuid NULL,
+            deleted_at timestamptz NULL,
+            deleted_by uuid NULL,
+            is_deleted boolean NOT NULL DEFAULT false,
+            user_id uuid NOT NULL,
+            meal_id uuid NULL,
+            recipe_id uuid NULL,
+            meal_name varchar(200) NOT NULL,
+            meal_type varchar(100) NULL,
+            serving_size integer NULL,
+            planned_date date NOT NULL,
+            status varchar(20) NOT NULL DEFAULT 'Planned',
+            note text NULL,
+            cooked_at timestamptz NULL,
+            image_url varchar(500) NULL,
+            image_public_id varchar(200) NULL
+        );",
+        @"CREATE INDEX IF NOT EXISTS ix_today_menu_items_user_planned_date
+            ON today_menu_items (user_id, planned_date);",
+        @"CREATE INDEX IF NOT EXISTS ix_today_menu_items_recipe_id
+            ON today_menu_items (recipe_id);",
+        @"CREATE TABLE IF NOT EXISTS cooking_logs (
+            id uuid PRIMARY KEY,
+            created_at timestamptz NOT NULL,
+            created_by uuid NULL,
+            updated_at timestamptz NULL,
+            updated_by uuid NULL,
+            deleted_at timestamptz NULL,
+            deleted_by uuid NULL,
+            is_deleted boolean NOT NULL DEFAULT false,
+            user_id uuid NOT NULL,
+            today_menu_item_id uuid NOT NULL,
+            meal_id uuid NULL,
+            recipe_id uuid NULL,
+            meal_name varchar(200) NOT NULL,
+            image_url varchar(500) NULL,
+            image_public_id varchar(200) NULL,
+            cooked_at timestamptz NOT NULL,
+            rating integer NULL,
+            note text NULL
+        );",
+        @"CREATE INDEX IF NOT EXISTS ix_cooking_logs_user_cooked_at
+            ON cooking_logs (user_id, cooked_at DESC);",
+        @"CREATE INDEX IF NOT EXISTS ix_cooking_logs_today_menu_item_id
+            ON cooking_logs (today_menu_item_id);",
+        @"CREATE TABLE IF NOT EXISTS pantry_usage_logs (
+            id uuid PRIMARY KEY,
+            created_at timestamptz NOT NULL,
+            created_by uuid NULL,
+            updated_at timestamptz NULL,
+            updated_by uuid NULL,
+            deleted_at timestamptz NULL,
+            deleted_by uuid NULL,
+            is_deleted boolean NOT NULL DEFAULT false,
+            user_id uuid NOT NULL,
+            today_menu_item_id uuid NOT NULL,
+            cooking_log_id uuid NOT NULL,
+            ingredient_id uuid NOT NULL,
+            ingredient_name varchar(200) NOT NULL,
+            quantity_used numeric(18, 4) NULL,
+            unit varchar(50) NULL,
+            action_type varchar(50) NOT NULL DEFAULT 'consumed',
+            warning text NULL
+        );",
+        @"CREATE INDEX IF NOT EXISTS ix_pantry_usage_logs_cooking_log_id
+            ON pantry_usage_logs (cooking_log_id);",
+        @"CREATE INDEX IF NOT EXISTS ix_pantry_usage_logs_today_menu_item_id
+            ON pantry_usage_logs (today_menu_item_id);"
     };
 
     foreach (var command in commands)

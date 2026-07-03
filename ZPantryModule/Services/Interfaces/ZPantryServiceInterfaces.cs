@@ -1,5 +1,6 @@
 using AuthenticationModule.Contracts.Common;
 using AuthenticationModule.DTOs;
+using Microsoft.AspNetCore.Http;
 
 namespace ZPantryModule.Services.Interfaces;
 
@@ -51,12 +52,20 @@ public interface IAIRecommendationClient
     Task<ApiResponse<RecommendMealAiResponse>> RecommendMealsAsync(RecommendMealAiRequest request, CancellationToken cancellationToken = default);
     Task<ApiResponse<MissingIngredientAiResponse>> SuggestMissingIngredientsAsync(MissingIngredientAiRequest request, CancellationToken cancellationToken = default);
     Task<ApiResponse<MealIngredientCheckAiResponse>> CheckMealIngredientsAsync(MealIngredientCheckAiRequest request, CancellationToken cancellationToken = default);
+    Task<ApiResponse<TodayMenuCompletionAiResponse>> CheckTodayMenuCompletionAsync(TodayMenuCompletionAiRequest request, CancellationToken cancellationToken = default);
     Task<ApiResponse<EmbeddingAiResponse>> EmbedIngredientAsync(EmbedIngredientAiRequest request, CancellationToken cancellationToken = default);
     Task<ApiResponse<EmbeddingAiResponse>> EmbedRecipeAsync(EmbedRecipeAiRequest request, CancellationToken cancellationToken = default);
 }
 
 public interface ICloudinaryStorageService
 {
+    Task<ApiResponse<MediaUploadResultDto>> UploadDetailedAsync(
+        Stream fileStream,
+        string fileName,
+        Guid? ingredientId = null,
+        Guid? recipeId = null,
+        CancellationToken cancellationToken = default);
+
     Task<ApiResponse<string>> UploadAsync(
         Stream fileStream,
         string fileName,
@@ -71,4 +80,41 @@ public interface IVectorSearchService
 {
     Task<IReadOnlyList<object>> FindSimilarRecipesAsync(float[] embedding, int topK, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<object>> FindSimilarIngredientsAsync(float[] embedding, int topK, CancellationToken cancellationToken = default);
+}
+
+public interface ITodayMenuService
+{
+    Task<PagedResponse<TodayMenuItemDto>> GetByUserAndDateAsync(
+        Guid userId,
+        DateOnly? plannedDate,
+        int pageIndex,
+        int pageSize,
+        CancellationToken cancellationToken = default);
+
+    Task<ApiResponse<TodayMenuItemDetailDto>> GetByIdAsync(
+        Guid userId,
+        Guid id,
+        CancellationToken cancellationToken = default);
+
+    Task<ApiResponse<TodayMenuItemDto>> CreateAsync(
+        Guid userId,
+        CreateTodayMenuItemRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<ApiResponse<object>> DeleteAsync(
+        Guid userId,
+        Guid id,
+        CancellationToken cancellationToken = default);
+
+    Task<ApiResponse<TodayMenuCompletionResponse>> CompleteAsync(
+        Guid userId,
+        Guid id,
+        CompleteTodayMenuItemRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<PagedResponse<CookingLogDto>> GetCookingLogsAsync(
+        Guid userId,
+        int pageIndex,
+        int pageSize,
+        CancellationToken cancellationToken = default);
 }

@@ -44,6 +44,14 @@ public class AIRecommendationClient : IAIRecommendationClient
             request,
             cancellationToken);
 
+    public Task<ApiResponse<TodayMenuCompletionAiResponse>> CheckTodayMenuCompletionAsync(
+        TodayMenuCompletionAiRequest request,
+        CancellationToken cancellationToken = default)
+        => PostAsync<TodayMenuCompletionAiRequest, TodayMenuCompletionAiResponse>(
+            "ai/check-today-menu-completion",
+            request,
+            cancellationToken);
+
     public Task<ApiResponse<EmbeddingAiResponse>> EmbedIngredientAsync(
         EmbedIngredientAiRequest request,
         CancellationToken cancellationToken = default)
