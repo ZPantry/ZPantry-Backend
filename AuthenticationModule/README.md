@@ -20,11 +20,12 @@ Response includes:
 {
   "accessToken": "...",
   "expiresAt": "2026-06-16T...",
-  "userId": "guid",
   "fullName": "Name",
   "email": "email@example.com"
 }
 ```
+
+The user id is stored in the access token `ClaimTypes.NameIdentifier` claim and is not returned in the login response.
 
 ## Logout
 - Send the JWT in `Authorization: Bearer <token>`.

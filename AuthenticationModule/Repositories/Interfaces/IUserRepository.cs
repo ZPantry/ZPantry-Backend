@@ -12,5 +12,8 @@ namespace AuthenticationModule.Repositories.Interfaces
        Task DeleteUser(User user);
        Task<User?> GetUserByEmail(string email);
        Task<User?> GetUserByRefreshTokenHash(string refreshTokenHash);
+       Task<User?> GetUserById(Guid id);
+       Task<List<User>> GetPagedUsers(int pageIndex, int pageSize);
+       Task<int> CountUsers();
     }
 }

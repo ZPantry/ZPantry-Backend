@@ -29,18 +29,41 @@ namespace AuthenticationModule.Repositories.Implementations
 
         public async Task DeleteUser(User user)
         {
-            _context.Users.Remove(user);
+            user.IsDeleted = true;
+            user.DeletedAt = DateTime.UtcNow;
+            _context.Users.Update(user);
             await _context.SaveChangesAsync();
         }
 
         public async Task<User?> GetUserByEmail(string email)
         {
-            return await _context.Users.FirstOrDefaultAsync(us => us.Email == email);
+            return await _context.Users.FirstOrDefaultAsync(us => us.Email == email && !us.IsDeleted);
         }
 
         public async Task<User?> GetUserByRefreshTokenHash(string refreshTokenHash)
         {
-            return await _context.Users.FirstOrDefaultAsync(us => us.RefreshTokenHash == refreshTokenHash);
+            return await _context.Users.FirstOrDefaultAsync(us => us.RefreshTokenHash == refreshTokenHash && !us.IsDeleted);
+        }
+
+        public async Task<User?> GetUserById(Guid id)
+        {
+            return await _context.Users.FirstOrDefaultAsync(us => us.Id == id && !us.IsDeleted);
+        }
+
+        public async Task<List<User>> GetPagedUsers(int pageIndex, int pageSize)
+        {
+            return await _context.Users
+                .AsNoTracking()
+                .Where(us => !us.IsDeleted)
+                .OrderBy(us => us.Email)
+                .Skip((pageIndex - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+        }
+
+        public async Task<int> CountUsers()
+        {
+            return await _context.Users.CountAsync(us => !us.IsDeleted);
         }
     }
 }

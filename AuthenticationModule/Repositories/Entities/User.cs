@@ -3,19 +3,13 @@ using System.Collections.Generic;
 
 namespace AuthenticationModule.Repositories.Entities;
 
-public partial class User
+public partial class User : BaseEntity
 {
-    public Guid Id { get; set; }
-
     public string? FullName { get; set; }
 
     public string Email { get; set; } = null!;
 
-    public string PasswordHashed { get; set; } = null!;
-
-    public DateTime CreatedAt { get; set; }
-
-    public DateTime? UpdatedAt { get; set; }
+    public string? AvatarUrl { get; set; }
 
     public string? OtpCode { get; set; }
 
@@ -28,6 +22,8 @@ public partial class User
     public bool IsActive { get; set; }
 
     public string Role { get; set; } = "user";
+
+    public string PasswordHashed { get; set; } = null!;
 
     public string? RefreshTokenHash { get; set; }
 
