@@ -30,8 +30,8 @@ builder.Services.Configure<JwtSettings>(
     builder.Configuration.GetSection("Jwt"));
 
 builder.Services.AddDbContext<ZpantryDbContext>(options =>
-    options.UseNpgsql(
-        builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
+        .UseSnakeCaseNamingConvention());
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
@@ -173,13 +173,10 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ZpantryDbContext>();
-    await ApplyDatabaseSchemaModeAsync(dbContext, builder.Configuration);
-    await EnsureGradientColumnsAsync(dbContext);
-    await EnsureTodayMenuSchemaAsync(dbContext);
+    await dbContext.Database.MigrateAsync();
 }
 
 await EnsureDemoAccountsAsync(app.Services, builder.Configuration);
-await EnsureTestFoodDataAsync(app.Services);
 
 app.UseSwagger();
 app.UseSwaggerUI(c =>
@@ -202,6 +199,13 @@ app.Run();
 
 static async Task EnsureDemoAccountsAsync(IServiceProvider services, IConfiguration configuration)
 {
+    var enabled = bool.TryParse(configuration["BootstrapDemoAccountsEnabled"], out var bootstrapEnabled)
+        && bootstrapEnabled;
+    if (!enabled)
+    {
+        return;
+    }
+
     var demoAccounts = configuration.GetSection("DemoAccounts").GetChildren();
 
     foreach (var accountSection in demoAccounts)
@@ -238,333 +242,3 @@ static async Task EnsureDemoAccountsAsync(IServiceProvider services, IConfigurat
         await userRepository.AddUser(user);
     }
 }
-
-static async Task ApplyDatabaseSchemaModeAsync(ZpantryDbContext dbContext, IConfiguration configuration)
-{
-    var schemaMode = (configuration["Database:SchemaMode"]
-        ?? configuration["Database__SchemaMode"]
-        ?? "update").Trim().ToLowerInvariant();
-
-    switch (schemaMode)
-    {
-        case "update":
-            var migrations = dbContext.Database.GetMigrations();
-            if (migrations.Any())
-            {
-                await dbContext.Database.MigrateAsync();
-            }
-            else
-            {
-                await dbContext.Database.EnsureCreatedAsync();
-            }
-
-            break;
-
-        case "create-drop":
-        case "createdrop":
-            await dbContext.Database.EnsureDeletedAsync();
-            await dbContext.Database.EnsureCreatedAsync();
-            break;
-
-        default:
-            throw new InvalidOperationException(
-                $"Unsupported Database__SchemaMode '{schemaMode}'. Allowed values: update, create-drop.");
-    }
-}
-
-static async Task EnsureGradientColumnsAsync(ZpantryDbContext dbContext)
-{
-    var commands = new[]
-    {
-        @"ALTER TABLE IF EXISTS ""ingredients"" ADD COLUMN IF NOT EXISTS ""GradientFrom"" character varying(32);",
-        @"ALTER TABLE IF EXISTS ""ingredients"" ADD COLUMN IF NOT EXISTS ""GradientTo"" character varying(32);",
-        @"ALTER TABLE IF EXISTS ""recipes"" ADD COLUMN IF NOT EXISTS ""GradientFrom"" character varying(32);",
-        @"ALTER TABLE IF EXISTS ""recipes"" ADD COLUMN IF NOT EXISTS ""GradientTo"" character varying(32);"
-    };
-
-    foreach (var command in commands)
-    {
-        await dbContext.Database.ExecuteSqlRawAsync(command);
-    }
-}
-
-static async Task EnsureTodayMenuSchemaAsync(ZpantryDbContext dbContext)
-{
-    var commands = new[]
-    {
-        @"CREATE TABLE IF NOT EXISTS today_menu_items (
-            id uuid PRIMARY KEY,
-            created_at timestamptz NOT NULL,
-            created_by uuid NULL,
-            updated_at timestamptz NULL,
-            updated_by uuid NULL,
-            deleted_at timestamptz NULL,
-            deleted_by uuid NULL,
-            is_deleted boolean NOT NULL DEFAULT false,
-            user_id uuid NOT NULL,
-            meal_id uuid NULL,
-            recipe_id uuid NULL,
-            meal_name varchar(200) NOT NULL,
-            meal_type varchar(100) NULL,
-            serving_size integer NULL,
-            planned_date date NOT NULL,
-            status varchar(20) NOT NULL DEFAULT 'Planned',
-            note text NULL,
-            cooked_at timestamptz NULL,
-            image_url varchar(500) NULL,
-            image_public_id varchar(200) NULL
-        );",
-        @"CREATE INDEX IF NOT EXISTS ix_today_menu_items_user_planned_date
-            ON today_menu_items (user_id, planned_date);",
-        @"CREATE INDEX IF NOT EXISTS ix_today_menu_items_recipe_id
-            ON today_menu_items (recipe_id);",
-        @"CREATE TABLE IF NOT EXISTS cooking_logs (
-            id uuid PRIMARY KEY,
-            created_at timestamptz NOT NULL,
-            created_by uuid NULL,
-            updated_at timestamptz NULL,
-            updated_by uuid NULL,
-            deleted_at timestamptz NULL,
-            deleted_by uuid NULL,
-            is_deleted boolean NOT NULL DEFAULT false,
-            user_id uuid NOT NULL,
-            today_menu_item_id uuid NOT NULL,
-            meal_id uuid NULL,
-            recipe_id uuid NULL,
-            meal_name varchar(200) NOT NULL,
-            image_url varchar(500) NULL,
-            image_public_id varchar(200) NULL,
-            cooked_at timestamptz NOT NULL,
-            rating integer NULL,
-            note text NULL
-        );",
-        @"CREATE INDEX IF NOT EXISTS ix_cooking_logs_user_cooked_at
-            ON cooking_logs (user_id, cooked_at DESC);",
-        @"CREATE INDEX IF NOT EXISTS ix_cooking_logs_today_menu_item_id
-            ON cooking_logs (today_menu_item_id);",
-        @"CREATE TABLE IF NOT EXISTS pantry_usage_logs (
-            id uuid PRIMARY KEY,
-            created_at timestamptz NOT NULL,
-            created_by uuid NULL,
-            updated_at timestamptz NULL,
-            updated_by uuid NULL,
-            deleted_at timestamptz NULL,
-            deleted_by uuid NULL,
-            is_deleted boolean NOT NULL DEFAULT false,
-            user_id uuid NOT NULL,
-            today_menu_item_id uuid NOT NULL,
-            cooking_log_id uuid NOT NULL,
-            ingredient_id uuid NOT NULL,
-            ingredient_name varchar(200) NOT NULL,
-            quantity_used numeric(18, 4) NULL,
-            unit varchar(50) NULL,
-            action_type varchar(50) NOT NULL DEFAULT 'consumed',
-            warning text NULL
-        );",
-        @"CREATE INDEX IF NOT EXISTS ix_pantry_usage_logs_cooking_log_id
-            ON pantry_usage_logs (cooking_log_id);",
-        @"CREATE INDEX IF NOT EXISTS ix_pantry_usage_logs_today_menu_item_id
-            ON pantry_usage_logs (today_menu_item_id);"
-    };
-
-    foreach (var command in commands)
-    {
-        await dbContext.Database.ExecuteSqlRawAsync(command);
-    }
-}
-
-static async Task EnsureTestFoodDataAsync(IServiceProvider services)
-{
-    using var scope = services.CreateScope();
-    var dbContext = scope.ServiceProvider.GetRequiredService<ZpantryDbContext>();
-
-    var seedIngredients = new[]
-    {
-        new IngredientSeed("Trứng gà", "trứng gà", "Protein", "piece", 70m, 6m, 5m, 1m),
-        new IngredientSeed("Cà chua", "cà chua", "Vegetable", "g", 0.18m, 0.009m, 0.002m, 0.039m),
-        new IngredientSeed("Thịt bò", "thịt bò", "Protein", "g", 2.5m, 0.26m, 0.15m, 0m),
-        new IngredientSeed("Thịt gà", "thịt gà", "Protein", "g", 1.65m, 0.31m, 0.036m, 0m),
-        new IngredientSeed("Thịt heo", "thịt heo", "Protein", "g", 2.42m, 0.27m, 0.14m, 0m),
-        new IngredientSeed("Gạo", "gạo", "Grain", "g", 1.3m, 0.027m, 0.003m, 0.28m),
-        new IngredientSeed("Đậu hũ", "đậu hũ", "Protein", "g", 0.76m, 0.08m, 0.048m, 0.019m),
-        new IngredientSeed("Cà rốt", "cà rốt", "Vegetable", "g", 0.41m, 0.009m, 0.002m, 0.1m),
-        new IngredientSeed("Hành lá", "hành lá", "Vegetable", "g", 0.32m, 0.018m, 0.002m, 0.073m),
-        new IngredientSeed("Hành tím", "hành tím", "Vegetable", "g", 0.4m, 0.011m, 0.001m, 0.093m),
-        new IngredientSeed("Tỏi", "tỏi", "Spice", "g", 1.49m, 0.064m, 0.005m, 0.33m),
-        new IngredientSeed("Nước mắm", "nước mắm", "Condiment", "ml", 0.35m, 0.06m, 0m, 0.03m),
-        new IngredientSeed("Dầu ăn", "dầu ăn", "Condiment", "ml", 8.84m, 0m, 1m, 0m)
-    };
-
-    var existingIngredientNames = await dbContext.Ingredients
-        .Where(ingredient => !ingredient.IsDeleted)
-        .Select(ingredient => ingredient.NormalizedName)
-        .ToListAsync();
-
-    var existingIngredientSet = existingIngredientNames.ToHashSet(StringComparer.OrdinalIgnoreCase);
-    var ingredientsToAdd = seedIngredients
-        .Where(seed => !existingIngredientSet.Contains(seed.NormalizedName))
-        .Select(seed => new Ingredient
-        {
-            Name = seed.Name,
-            NormalizedName = seed.NormalizedName,
-            Category = seed.Category,
-            Unit = seed.Unit,
-            CaloriesPerUnit = seed.CaloriesPerUnit,
-            ProteinPerUnit = seed.ProteinPerUnit,
-            FatPerUnit = seed.FatPerUnit,
-            CarbPerUnit = seed.CarbPerUnit
-        })
-        .ToList();
-
-    if (ingredientsToAdd.Count > 0)
-    {
-        dbContext.Ingredients.AddRange(ingredientsToAdd);
-        await dbContext.SaveChangesAsync();
-    }
-
-    var ingredientIds = await dbContext.Ingredients
-        .Where(ingredient => !ingredient.IsDeleted)
-        .ToDictionaryAsync(ingredient => ingredient.NormalizedName, ingredient => ingredient.Id);
-
-    var seedRecipes = new[]
-    {
-        new RecipeSeed(
-            "Trứng xào cà chua",
-            "Món nhanh với trứng và cà chua, phù hợp bữa sáng hoặc bữa tối nhẹ.",
-            15,
-            "easy",
-            2,
-            "Đánh trứng. Xào cà chua với hành tím, thêm trứng, nêm nước mắm và hành lá.",
-            new[]
-            {
-                new RecipeIngredientSeed("trứng gà", 2m, "piece", true),
-                new RecipeIngredientSeed("cà chua", 200m, "g", true),
-                new RecipeIngredientSeed("hành tím", 10m, "g", false),
-                new RecipeIngredientSeed("hành lá", 10m, "g", false),
-                new RecipeIngredientSeed("nước mắm", 10m, "ml", false)
-            }),
-        new RecipeSeed(
-            "Cơm rang thịt bò",
-            "Cơm rang giàu đạm với thịt bò, cà rốt và trứng.",
-            25,
-            "medium",
-            2,
-            "Xào bò với tỏi. Thêm cơm, trứng, cà rốt, nêm nước mắm rồi đảo lửa lớn.",
-            new[]
-            {
-                new RecipeIngredientSeed("gạo", 250m, "g", true),
-                new RecipeIngredientSeed("thịt bò", 200m, "g", true),
-                new RecipeIngredientSeed("trứng gà", 1m, "piece", false),
-                new RecipeIngredientSeed("cà rốt", 80m, "g", false),
-                new RecipeIngredientSeed("tỏi", 5m, "g", false)
-            }),
-        new RecipeSeed(
-            "Cháo gà",
-            "Món mềm, dễ ăn, dùng tốt khi cần bữa nhẹ.",
-            45,
-            "easy",
-            3,
-            "Nấu gạo với nhiều nước. Luộc gà, xé nhỏ, cho vào cháo và nêm vừa ăn.",
-            new[]
-            {
-                new RecipeIngredientSeed("gạo", 150m, "g", true),
-                new RecipeIngredientSeed("thịt gà", 250m, "g", true),
-                new RecipeIngredientSeed("hành lá", 10m, "g", false),
-                new RecipeIngredientSeed("nước mắm", 10m, "ml", false)
-            }),
-        new RecipeSeed(
-            "Đậu hũ sốt cà chua",
-            "Món chay đơn giản với đậu hũ và sốt cà chua.",
-            20,
-            "easy",
-            2,
-            "Áp chảo đậu hũ. Nấu sốt cà chua với hành tím, cho đậu hũ vào rim thấm.",
-            new[]
-            {
-                new RecipeIngredientSeed("đậu hũ", 300m, "g", true),
-                new RecipeIngredientSeed("cà chua", 250m, "g", true),
-                new RecipeIngredientSeed("hành tím", 10m, "g", false),
-                new RecipeIngredientSeed("hành lá", 10m, "g", false)
-            }),
-        new RecipeSeed(
-            "Canh thịt heo cà rốt",
-            "Canh gia đình cơ bản, dễ nấu với thịt heo và cà rốt.",
-            30,
-            "easy",
-            3,
-            "Xào sơ thịt heo với hành tím. Thêm nước và cà rốt, nấu mềm rồi nêm nước mắm.",
-            new[]
-            {
-                new RecipeIngredientSeed("thịt heo", 200m, "g", true),
-                new RecipeIngredientSeed("cà rốt", 150m, "g", true),
-                new RecipeIngredientSeed("hành tím", 10m, "g", false),
-                new RecipeIngredientSeed("nước mắm", 10m, "ml", false)
-            })
-    };
-
-    var existingRecipeNames = await dbContext.Recipes
-        .Where(recipe => !recipe.IsDeleted)
-        .Select(recipe => recipe.Name)
-        .ToListAsync();
-
-    var existingRecipeSet = existingRecipeNames.ToHashSet(StringComparer.OrdinalIgnoreCase);
-    foreach (var seed in seedRecipes.Where(seed => !existingRecipeSet.Contains(seed.Name)))
-    {
-        var recipe = new Recipe
-        {
-            Name = seed.Name,
-            Description = seed.Description,
-            CookingTimeMinutes = seed.CookingTimeMinutes,
-            Difficulty = seed.Difficulty,
-            ServingSize = seed.ServingSize,
-            InstructionText = seed.InstructionText,
-            SourceType = "seed"
-        };
-
-        dbContext.Recipes.Add(recipe);
-
-        foreach (var ingredient in seed.Ingredients)
-        {
-            if (!ingredientIds.TryGetValue(ingredient.NormalizedName, out var ingredientId))
-            {
-                continue;
-            }
-
-            dbContext.RecipeIngredients.Add(new RecipeIngredient
-            {
-                RecipeId = recipe.Id,
-                IngredientId = ingredientId,
-                Quantity = ingredient.Quantity,
-                Unit = ingredient.Unit,
-                IsRequired = ingredient.IsRequired
-            });
-        }
-    }
-
-    await dbContext.SaveChangesAsync();
-}
-
-internal sealed record IngredientSeed(
-    string Name,
-    string NormalizedName,
-    string Category,
-    string Unit,
-    decimal CaloriesPerUnit,
-    decimal ProteinPerUnit,
-    decimal FatPerUnit,
-    decimal CarbPerUnit);
-
-internal sealed record RecipeSeed(
-    string Name,
-    string Description,
-    int CookingTimeMinutes,
-    string Difficulty,
-    int ServingSize,
-    string InstructionText,
-    IReadOnlyCollection<RecipeIngredientSeed> Ingredients);
-
-internal sealed record RecipeIngredientSeed(
-    string NormalizedName,
-    decimal Quantity,
-    string Unit,
-    bool IsRequired);

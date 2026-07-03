@@ -172,7 +172,7 @@ public partial class ZpantryDbContext : DbContext
             entity.Property(e => e.Status)
                 .HasConversion<string>()
                 .HasMaxLength(20)
-                .HasDefaultValue("Planned");
+                .HasDefaultValue(TodayMenuStatus.Planned);
         });
 
         modelBuilder.Entity<CookingLog>(entity =>

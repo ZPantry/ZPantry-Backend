@@ -1,8 +1,6 @@
--- ZPantry skeleton migration for PostgreSQL + pgvector.
+-- ZPantry skeleton migration for PostgreSQL.
 -- This file is intentionally lightweight and mirrors the SSOT entity set.
 -- TODO: Generate EF Core migrations once the domain stabilizes.
-
-CREATE EXTENSION IF NOT EXISTS vector;
 
 CREATE TABLE IF NOT EXISTS users (
     id uuid PRIMARY KEY,
@@ -45,7 +43,7 @@ CREATE TABLE IF NOT EXISTS ingredients (
     fat_per_unit numeric(18, 4) NULL,
     carb_per_unit numeric(18, 4) NULL,
     image_url varchar(500) NULL,
-    embedding vector(1536) NULL
+    embedding real[] NULL
 );
 
 CREATE TABLE IF NOT EXISTS ingredient_aliases (
@@ -79,7 +77,7 @@ CREATE TABLE IF NOT EXISTS recipes (
     instruction_text text NULL,
     image_url varchar(500) NULL,
     source_type varchar(100) NULL,
-    embedding vector(1536) NULL
+    embedding real[] NULL
 );
 
 CREATE TABLE IF NOT EXISTS recipe_ingredients (

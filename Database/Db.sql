@@ -25,9 +25,8 @@ ALTER DATABASE "ZPantryDb" SET timezone TO 'UTC';
 ALTER DATABASE "ZPantryDb" SET client_encoding TO 'UTF8';
 ALTER DATABASE "ZPantryDb" SET standard_conforming_strings TO on;
 
--- Enable extension for UUID generation functions and vector support
+-- Enable extension for UUID generation functions
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
-CREATE EXTENSION IF NOT EXISTS vector;
 
 -- =========================================================================================
 -- 2. TABLE CREATION: public."users"
