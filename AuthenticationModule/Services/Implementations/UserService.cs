@@ -325,6 +325,82 @@ public class UserService : IUserService
         }
     }
 
+    public async Task ForgotPasswordAsync(ForgotPasswordRequest request)
+    {
+        var user = await _userRepository.GetUserByEmail(request.Email);
+        if (user == null)
+        {
+            throw new Exception("Email không tồn tại trong hệ thống.");
+        }
+
+        if (!user.IsActive)
+        {
+            throw new UnauthorizedAccessException("Tài khoản này hiện đang bị khóa.");
+        }
+
+        var generatedOtp = Random.Shared.Next(100000, 999999).ToString();
+        var otpExpiry = DateTime.UtcNow.AddMinutes(10);
+
+        user.OtpCode = generatedOtp;
+        user.OtpExpiredAt = otpExpiry;
+        user.OtpRetryCount = 0;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await _userRepository.UpdateUser(user);
+
+        var subject = $"[{generatedOtp}] Mã xác nhận đặt lại mật khẩu ZPantry";
+        var htmlBody = $@"
+            <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>
+                <h2 style='color: #2196F3; text-align: center;'>Yêu Cầu Đặt Lại Mật Khẩu ZPantry</h2>
+                <p>Xin chào <b>{user.FullName ?? user.Email}</b>,</p>
+                <p>Hệ thống đã nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn. Mã OTP xác nhận của bạn là:</p>
+                <div style='text-align: center; margin: 30px 0;'>
+                    <span style='background-color: #f4f4f4; padding: 10px 20px; font-size: 24px; font-weight: bold; letter-spacing: 5px; border: 1px dashed #2196F3; color: #333;'>
+                        {generatedOtp}
+                    </span>
+                </div>
+                <p style='color: #ff0000; font-size: 13px;'>* Mã này có hiệu lực trong vòng 10 phút. Nếu bạn không yêu cầu đổi mật khẩu, vui lòng bỏ qua email này.</p>
+            </div>";
+
+        try
+        {
+            await _emailService.SendEmailAsync(user.Email, subject, htmlBody);
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Không thể gửi email OTP. Chi tiết: {ex.Message}");
+        }
+    }
+
+    public async Task ResetPasswordAsync(ResetPasswordRequest request)
+    {
+        var user = await _userRepository.GetUserByEmail(request.Email);
+        if (user == null || !user.IsActive)
+        {
+            throw new Exception("Tài khoản không hợp lệ hoặc đã bị khóa.");
+        }
+
+        if (string.IsNullOrWhiteSpace(user.OtpCode) || user.OtpCode != request.OtpCode || user.OtpExpiredAt == null || user.OtpExpiredAt < DateTime.UtcNow)
+        {
+            throw new Exception("Mã OTP không chính xác hoặc đã hết hạn.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 6)
+        {
+            throw new Exception("Mật khẩu mới phải có ít nhất 6 ký tự.");
+        }
+
+        user.PasswordHashed = new PasswordHasher().HashPassword(request.NewPassword);
+        user.OtpCode = null;
+        user.OtpExpiredAt = null;
+        user.OtpRetryCount = 0;
+        user.RefreshTokenHash = null;
+        user.RefreshTokenExpiresAt = null;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await _userRepository.UpdateUser(user);
+    }
+
     private async Task<AuthResponse> IssueTokensAsync(User user, bool rotateRefreshToken)
     {
         var accessToken = CreateAccessToken(user);

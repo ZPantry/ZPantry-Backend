@@ -47,7 +47,24 @@ Tài liệu này tổng hợp toàn bộ các thay đổi mới nhất trong h�
 
 ---
 
-### B. Quản Lý Người Dùng (User Management)
+### B. Quản Lý Quên & Khôi Phục Mật Khẩu (Forgot & Reset Password)
+
+> [!NOTE]
+> Bổ sung luồng khôi phục mật khẩu tự động qua mã OTP gửi qua Gmail cho phép người dùng tự lấy lại quyền truy cập an toàn mà không cần sự can thiệp của Quản trị viên.
+
+1. **Điều chỉnh Nghiệp vụ (Business Logic)**:
+   * **Yêu cầu khôi phục (`ForgotPasswordAsync`)**: Khi người dùng nhập Email, hệ thống kiểm tra trạng thái hoạt động của tài khoản, tự động tạo mã OTP 6 chữ số có hiệu lực trong 10 phút, cập nhật vào database và gửi email HTML với định dạng rõ ràng, chuyên nghiệp.
+   * **Đặt lại mật khẩu (`ResetPasswordAsync`)**: Người dùng xác thực mã OTP hợp lệ và đặt mật khẩu mới (tối thiểu 6 ký tự). Mật khẩu mới được băm (hash) bảo mật bằng `PasswordHasher`.
+   * **Bảo mật phiên đăng nhập**: Khi đổi mật khẩu thành công, toàn bộ `RefreshToken` cũ sẽ bị xóa bỏ nhằm đăng xuất tài khoản khỏi các thiết bị cũ.
+
+2. **Chi tiết API & Mã Nguồn**:
+   * **`POST /api/auth/forgot-password`** *(Quyền: Public/AllowAnonymous)*: Nhận payload `{ "email": "user@gmail.com" }`, trả về thông báo đã gửi OTP đến Gmail.
+   * **`POST /api/auth/reset-password`** *(Quyền: Public/AllowAnonymous)*: Nhận payload `{ "email": "user@gmail.com", "otpCode": "123456", "newPassword": "NewPassword@123" }`, thực hiện đổi mật khẩu.
+   * **File mã nguồn**: [ForgotPasswordRequest.cs](file:///d:/Proj/ZPantry-Backend/AuthenticationModule/DTOs/ForgotPasswordRequest.cs), [ResetPasswordRequest.cs](file:///d:/Proj/ZPantry-Backend/AuthenticationModule/DTOs/ResetPasswordRequest.cs), [AuthController.cs](file:///d:/Proj/ZPantry-Backend/AuthenticationModule/Controllers/AuthController.cs), [UserService.cs](file:///d:/Proj/ZPantry-Backend/AuthenticationModule/Services/Implementations/UserService.cs).
+
+---
+
+### C. Quản Lý Người Dùng (User Management)
 
 > [!IMPORTANT]
 > Nghiệp vụ được tái cấu trúc để đảm bảo tính riêng tư dữ liệu và phân chia quyền hạn rõ ràng giữa Quản trị viên (Admin) và Người dùng sở hữu tài khoản (Account Owner).

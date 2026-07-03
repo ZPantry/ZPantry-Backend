@@ -14,6 +14,8 @@ namespace AuthenticationModule.Services.Interfaces
         Task<AuthResponse> LoginAsync(LoginRequest request);
         Task<AuthResponse> GoogleLoginAsync(GoogleLoginRequest request);
         Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request);
+        Task ForgotPasswordAsync(ForgotPasswordRequest request);
+        Task ResetPasswordAsync(ResetPasswordRequest request);
         Task LogoutAsync(string token);
 
         Task<PagedResponse<UserDto>> GetAllUsersAsync(int pageIndex, int pageSize);

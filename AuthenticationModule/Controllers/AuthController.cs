@@ -136,4 +136,38 @@ public class AuthController : ControllerBase
             return StatusCode(500, ApiResponse<object>.Fail(ex.Message, traceId: HttpContext.TraceIdentifier));
         }
     }
+
+    [AllowAnonymous]
+    [HttpPost("forgot-password")]
+    public async Task<ActionResult<ApiResponse<object>>> ForgotPassword([FromBody] ForgotPasswordRequest request)
+    {
+        try
+        {
+            await _userService.ForgotPasswordAsync(request);
+            return Ok(ApiResponse<object>.SuccessResponse(null, "Mã OTP đặt lại mật khẩu đã được gửi đến email của bạn.", HttpContext.TraceIdentifier));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ApiResponse<object>.Fail(ex.Message, traceId: HttpContext.TraceIdentifier));
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ApiResponse<object>.Fail(ex.Message, traceId: HttpContext.TraceIdentifier));
+        }
+    }
+
+    [AllowAnonymous]
+    [HttpPost("reset-password")]
+    public async Task<ActionResult<ApiResponse<object>>> ResetPassword([FromBody] ResetPasswordRequest request)
+    {
+        try
+        {
+            await _userService.ResetPasswordAsync(request);
+            return Ok(ApiResponse<object>.SuccessResponse(null, "Đặt lại mật khẩu thành công! Bạn có thể đăng nhập bằng mật khẩu mới.", HttpContext.TraceIdentifier));
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ApiResponse<object>.Fail(ex.Message, traceId: HttpContext.TraceIdentifier));
+        }
+    }
 }
