@@ -252,3 +252,27 @@ CREATE TABLE IF NOT EXISTS pantry_usage_logs (
     action_type varchar(50) NOT NULL DEFAULT 'consumed',
     warning text NULL
 );
+
+-- -----------------------------------------------------------------------------------------
+-- Schema sync for existing databases
+-- -----------------------------------------------------------------------------------------
+
+ALTER TABLE IF EXISTS users
+    ALTER COLUMN role SET DEFAULT 'user',
+    ALTER COLUMN otp_retry_count SET DEFAULT 0,
+    ALTER COLUMN is_email_confirmed SET DEFAULT false,
+    ALTER COLUMN is_active SET DEFAULT false;
+
+ALTER TABLE IF EXISTS ingredients
+    ADD COLUMN IF NOT EXISTS gradient_from varchar(32),
+    ADD COLUMN IF NOT EXISTS gradient_to varchar(32);
+
+ALTER TABLE IF EXISTS recipes
+    ADD COLUMN IF NOT EXISTS gradient_from varchar(32),
+    ADD COLUMN IF NOT EXISTS gradient_to varchar(32);
+
+ALTER TABLE IF EXISTS today_menu_items
+    ALTER COLUMN status SET DEFAULT 'Planned';
+
+ALTER TABLE IF EXISTS pantry_usage_logs
+    ALTER COLUMN action_type SET DEFAULT 'consumed';

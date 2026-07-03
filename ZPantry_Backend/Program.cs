@@ -7,8 +7,6 @@ using AuthenticationModule.Services.Implementations;
 using AuthenticationModule.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using ZPantryModule.Controllers;
@@ -245,14 +243,8 @@ static async Task EnsureDatabaseSchemaAsync(IServiceProvider services)
 {
     using var scope = services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<ZpantryDbContext>();
-    var migrationsAssembly = dbContext.GetService<IMigrationsAssembly>();
 
-    if (migrationsAssembly.Migrations.Count == 0)
-    {
-        await ApplyBootstrapSchemaAsync(dbContext);
-        return;
-    }
-
+    await ApplyBootstrapSchemaAsync(dbContext);
     await dbContext.Database.MigrateAsync();
 }
 
