@@ -22,4 +22,11 @@
     <ProjectReference Include="..\ZPantryModule\ZPantryModule.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="..\Database\**\*.sql">
+      <Link>Database\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

@@ -7,6 +7,8 @@ using AuthenticationModule.Services.Implementations;
 using AuthenticationModule.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using ZPantryModule.Controllers;
@@ -31,7 +33,8 @@ builder.Services.Configure<JwtSettings>(
 
 builder.Services.AddDbContext<ZpantryDbContext>(options =>
     options.UseNpgsql(
-        builder.Configuration.GetConnectionString("DefaultConnection")));
+        builder.Configuration.GetConnectionString("DefaultConnection"))
+        .UseSnakeCaseNamingConvention());
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
@@ -170,6 +173,7 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
+await EnsureDatabaseSchemaAsync(app.Services);
 await EnsureDemoAccountsAsync(app.Services, builder.Configuration);
 
 app.UseSwagger();
@@ -235,5 +239,39 @@ static async Task EnsureDemoAccountsAsync(IServiceProvider services, IConfigurat
 
         await userRepository.AddUser(user);
     }
+}
+
+static async Task EnsureDatabaseSchemaAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<ZpantryDbContext>();
+    var migrationsAssembly = dbContext.GetService<IMigrationsAssembly>();
+
+    if (migrationsAssembly.Migrations.Count == 0)
+    {
+        await ApplyBootstrapSchemaAsync(dbContext);
+        return;
+    }
+
+    await dbContext.Database.MigrateAsync();
+}
+
+static async Task ApplyBootstrapSchemaAsync(ZpantryDbContext dbContext)
+{
+    var scriptPath = Path.Combine(
+        AppContext.BaseDirectory,
+        "Database",
+        "Migrations",
+        "20260628000100_InitialSkeleton.sql");
+
+    if (!File.Exists(scriptPath))
+    {
+        throw new FileNotFoundException(
+            "Database bootstrap script was not found.",
+            scriptPath);
+    }
+
+    var sql = await File.ReadAllTextAsync(scriptPath);
+    await dbContext.Database.ExecuteSqlRawAsync(sql);
 }
 
