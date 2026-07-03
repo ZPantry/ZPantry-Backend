@@ -33,6 +33,12 @@ public class PantryController : ControllerBase
         return Ok(await _userPantryService.GetByUserIdAsync(userId.Value, pageIndex, pageSize));
     }
 
+    [HttpGet("items")]
+    public Task<ActionResult<PagedResponse<PantryItemDto>>> GetItems(
+        [FromQuery] int pageIndex = 1,
+        [FromQuery] int pageSize = 10)
+        => GetByUserId(pageIndex, pageSize);
+
     [HttpPost("items")]
     public async Task<ActionResult<ApiResponse<PantryItemDto>>> Upsert([FromBody] UpsertPantryItemRequest request)
     {

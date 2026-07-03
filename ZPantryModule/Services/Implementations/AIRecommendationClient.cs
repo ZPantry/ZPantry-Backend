@@ -36,6 +36,14 @@ public class AIRecommendationClient : IAIRecommendationClient
             request,
             cancellationToken);
 
+    public Task<ApiResponse<MealIngredientCheckAiResponse>> CheckMealIngredientsAsync(
+        MealIngredientCheckAiRequest request,
+        CancellationToken cancellationToken = default)
+        => PostAsync<MealIngredientCheckAiRequest, MealIngredientCheckAiResponse>(
+            "ai/check-meal-ingredients",
+            request,
+            cancellationToken);
+
     public Task<ApiResponse<EmbeddingAiResponse>> EmbedIngredientAsync(
         EmbedIngredientAiRequest request,
         CancellationToken cancellationToken = default)

@@ -41,6 +41,7 @@ public interface IRecommendationService
 {
     Task<ApiResponse<RecommendMealResponse>> RecommendMealsAsync(Guid userId, RecommendMealRequest request, CancellationToken cancellationToken = default);
     Task<ApiResponse<MissingIngredientSuggestionResponse>> SuggestMissingIngredientsAsync(Guid userId, RecommendMealRequest request, CancellationToken cancellationToken = default);
+    Task<ApiResponse<MealIngredientCheckResponse>> CheckMealIngredientsAsync(Guid userId, Guid mealId, CancellationToken cancellationToken = default);
     Task<ApiResponse<object>> FeedbackAsync(Guid userId, Guid recommendationId, RecommendationFeedbackRequest request, CancellationToken cancellationToken = default);
     Task<ApiResponse<object>> GetByIdAsync(Guid userId, Guid id, CancellationToken cancellationToken = default);
 }
@@ -49,6 +50,7 @@ public interface IAIRecommendationClient
 {
     Task<ApiResponse<RecommendMealAiResponse>> RecommendMealsAsync(RecommendMealAiRequest request, CancellationToken cancellationToken = default);
     Task<ApiResponse<MissingIngredientAiResponse>> SuggestMissingIngredientsAsync(MissingIngredientAiRequest request, CancellationToken cancellationToken = default);
+    Task<ApiResponse<MealIngredientCheckAiResponse>> CheckMealIngredientsAsync(MealIngredientCheckAiRequest request, CancellationToken cancellationToken = default);
     Task<ApiResponse<EmbeddingAiResponse>> EmbedIngredientAsync(EmbedIngredientAiRequest request, CancellationToken cancellationToken = default);
     Task<ApiResponse<EmbeddingAiResponse>> EmbedRecipeAsync(EmbedRecipeAiRequest request, CancellationToken cancellationToken = default);
 }

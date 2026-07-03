@@ -29,13 +29,27 @@ public class PantryService : IUserPantryService
             .ThenBy(item => item.CreatedAt);
 
         var totalItems = await query.CountAsync(cancellationToken);
-        var pantryItems = await query
+        var pantryItems = await (
+                from pantryItem in query
+                join ingredient in _dbContext.Ingredients.AsNoTracking()
+                    on pantryItem.IngredientId equals ingredient.Id
+                select new PantryItemDto
+                {
+                    Id = pantryItem.Id,
+                    IngredientId = pantryItem.IngredientId,
+                    IngredientName = ingredient.Name,
+                    Quantity = pantryItem.Quantity,
+                    Unit = pantryItem.Unit,
+                    ExpiredAt = pantryItem.ExpiredAt,
+                    StorageLocation = pantryItem.StorageLocation,
+                    Note = pantryItem.Note
+                })
             .Skip((paging.PageIndex - 1) * paging.PageSize)
             .Take(paging.PageSize)
             .ToListAsync(cancellationToken);
 
         return PagedResponse<PantryItemDto>.SuccessPage(
-            pantryItems.Select(item => item.ToDto()),
+            pantryItems,
             paging.PageIndex,
             paging.PageSize,
             totalItems);
@@ -83,7 +97,9 @@ public class PantryService : IUserPantryService
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return ApiResponse<PantryItemDto>.SuccessResponse(pantryItem.ToDto(), "Pantry item saved.");
+        return ApiResponse<PantryItemDto>.SuccessResponse(
+            await BuildPantryItemDtoAsync(pantryItem, cancellationToken),
+            "Pantry item saved.");
     }
 
     public async Task<ApiResponse<PantryItemDto>> UpdateAsync(
@@ -134,7 +150,9 @@ public class PantryService : IUserPantryService
         pantryItem.UpdatedAt = DateTime.UtcNow;
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return ApiResponse<PantryItemDto>.SuccessResponse(pantryItem.ToDto(), "Pantry item updated.");
+        return ApiResponse<PantryItemDto>.SuccessResponse(
+            await BuildPantryItemDtoAsync(pantryItem, cancellationToken),
+            "Pantry item updated.");
     }
 
     public async Task<ApiResponse<object>> DeleteAsync(
@@ -155,5 +173,28 @@ public class PantryService : IUserPantryService
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         return ApiResponse<object>.SuccessResponse(null, "Pantry item deleted.");
+    }
+
+    private async Task<PantryItemDto> BuildPantryItemDtoAsync(
+        UserPantryItem pantryItem,
+        CancellationToken cancellationToken)
+    {
+        var ingredientName = await _dbContext.Ingredients
+            .AsNoTracking()
+            .Where(item => item.Id == pantryItem.IngredientId && !item.IsDeleted)
+            .Select(item => item.Name)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return new PantryItemDto
+        {
+            Id = pantryItem.Id,
+            IngredientId = pantryItem.IngredientId,
+            IngredientName = ingredientName,
+            Quantity = pantryItem.Quantity,
+            Unit = pantryItem.Unit,
+            ExpiredAt = pantryItem.ExpiredAt,
+            StorageLocation = pantryItem.StorageLocation,
+            Note = pantryItem.Note
+        };
     }
 }

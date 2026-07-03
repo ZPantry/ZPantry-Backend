@@ -48,19 +48,45 @@ public class RecommendationService : IRecommendationService
             },
             cancellationToken);
 
-        if (!aiResponse.Success || aiResponse.Data is null)
+        RecommendMealResponse response;
+        string message;
+
+        if (aiResponse.Success && aiResponse.Data is not null)
         {
-            recommendation.Status = "failed";
-            recommendation.UpdatedAt = DateTime.UtcNow;
-            await _dbContext.SaveChangesAsync(cancellationToken);
-            return ApiResponse<RecommendMealResponse>.Fail(aiResponse.Message);
+            response = new RecommendMealResponse
+            {
+                Items = aiResponse.Data.Items
+                    .Select(item => new RecommendMealResponseItem
+                    {
+                        RecipeId = item.RecipeId,
+                        RecipeName = item.RecipeName,
+                        MatchScore = item.MatchScore,
+                        MissingIngredientCount = item.MissingIngredientCount,
+                        MissingIngredientNames = item.MissingIngredientNames,
+                        Reason = item.Reason,
+                        Rank = item.Rank
+                    })
+                    .ToList()
+            };
+            message = "Meal recommendations generated.";
+        }
+        else
+        {
+            response = await BuildLocalRecommendMealResponseAsync(
+                userIngredients,
+                candidateRecipes,
+                request.TopK,
+                cancellationToken);
+            message = string.IsNullOrWhiteSpace(aiResponse.Message)
+                ? "AI service unavailable. Local fallback applied."
+                : $"{aiResponse.Message} Local fallback applied.";
         }
 
         recommendation.Status = "completed";
         recommendation.CompletedAt = DateTime.UtcNow;
         recommendation.UpdatedAt = DateTime.UtcNow;
 
-        foreach (var item in aiResponse.Data.Items)
+        foreach (var item in response.Items)
         {
             _dbContext.MealRecommendationItems.Add(new MealRecommendationItem
             {
@@ -76,23 +102,7 @@ public class RecommendationService : IRecommendationService
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        var response = new RecommendMealResponse
-        {
-            Items = aiResponse.Data.Items
-                .Select(item => new RecommendMealResponseItem
-                {
-                    RecipeId = item.RecipeId,
-                    RecipeName = item.RecipeName,
-                    MatchScore = item.MatchScore,
-                    MissingIngredientCount = item.MissingIngredientCount,
-                    MissingIngredientNames = item.MissingIngredientNames,
-                    Reason = item.Reason,
-                    Rank = item.Rank
-                })
-                .ToList()
-        };
-
-        return ApiResponse<RecommendMealResponse>.SuccessResponse(response, "Meal recommendations generated.");
+        return ApiResponse<RecommendMealResponse>.SuccessResponse(response, message);
     }
 
     public async Task<ApiResponse<MissingIngredientSuggestionResponse>> SuggestMissingIngredientsAsync(
@@ -133,6 +143,67 @@ public class RecommendationService : IRecommendationService
                 MissingIngredients = aiResponse.Data.MissingIngredients
             },
             "Missing ingredients suggested.");
+    }
+
+    public async Task<ApiResponse<MealIngredientCheckResponse>> CheckMealIngredientsAsync(
+        Guid userId,
+        Guid mealId,
+        CancellationToken cancellationToken = default)
+    {
+        var recipe = await _dbContext.Recipes
+            .AsNoTracking()
+            .FirstOrDefaultAsync(item => item.Id == mealId && !item.IsDeleted, cancellationToken);
+
+        if (recipe is null)
+        {
+            return ApiResponse<MealIngredientCheckResponse>.Fail("Recipe not found.");
+        }
+
+        var requiredIngredients = await LoadRecipeIngredientItemsAsync(recipe.Id, cancellationToken);
+        if (requiredIngredients.Count == 0)
+        {
+            return ApiResponse<MealIngredientCheckResponse>.Fail("Recipe does not have configured ingredients.");
+        }
+
+        var fridgeIngredients = await LoadUserPantryIngredientItemsAsync(userId, cancellationToken);
+        var aiResponse = await _aiRecommendationClient.CheckMealIngredientsAsync(
+            new MealIngredientCheckAiRequest
+            {
+                UserId = userId,
+                Meal = new MealIngredientCheckAiMeal
+                {
+                    MealId = recipe.Id,
+                    MealName = recipe.Name
+                },
+                RequiredIngredients = requiredIngredients.Select(ToAiIngredient).ToList(),
+                FridgeIngredients = fridgeIngredients.Select(ToAiIngredient).ToList()
+            },
+            cancellationToken);
+
+        var fallbackResponse = BuildMealIngredientCheckResponse(recipe, requiredIngredients, fridgeIngredients);
+        if (!aiResponse.Success || aiResponse.Data is null)
+        {
+            return ApiResponse<MealIngredientCheckResponse>.SuccessResponse(
+                fallbackResponse,
+                string.IsNullOrWhiteSpace(aiResponse.Message)
+                    ? "Meal ingredients checked using local fallback."
+                    : $"{aiResponse.Message} Local fallback applied.");
+        }
+
+        return ApiResponse<MealIngredientCheckResponse>.SuccessResponse(
+            new MealIngredientCheckResponse
+            {
+                MealId = aiResponse.Data.MealId,
+                MealName = aiResponse.Data.MealName,
+                AvailableIngredients = aiResponse.Data.AvailableIngredients
+                    .Select(ToResponseItem)
+                    .ToList(),
+                MissingIngredients = aiResponse.Data.MissingIngredients
+                    .Select(ToResponseItem)
+                    .ToList(),
+                Note = aiResponse.Data.Note
+            },
+            "Meal ingredients checked.");
     }
 
     public async Task<ApiResponse<object>> FeedbackAsync(
@@ -326,6 +397,69 @@ public class RecommendationService : IRecommendationService
                 : string.Equals(recipe.Name, candidate, StringComparison.OrdinalIgnoreCase)));
     }
 
+    private async Task<RecommendMealResponse> BuildLocalRecommendMealResponseAsync(
+        IReadOnlyList<AiIngredientItem> userIngredients,
+        IReadOnlyList<AiCandidateRecipeItem> candidateRecipes,
+        int topK,
+        CancellationToken cancellationToken)
+    {
+        var userIngredientNames = userIngredients
+            .Select(item => NormalizeName(item.Name))
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var items = new List<RecommendMealResponseItem>();
+
+        foreach (var recipe in candidateRecipes)
+        {
+            var requiredIngredientNames = recipe.IngredientNames
+                .Select(NormalizeName)
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var matchedNames = requiredIngredientNames
+                .Where(userIngredientNames.Contains)
+                .ToList();
+
+            var missingNames = requiredIngredientNames
+                .Where(name => !userIngredientNames.Contains(name))
+                .ToList();
+
+            var matchScore = requiredIngredientNames.Count == 0
+                ? 0m
+                : Math.Round((decimal)matchedNames.Count / requiredIngredientNames.Count, 3);
+
+            items.Add(new RecommendMealResponseItem
+            {
+                RecipeId = recipe.RecipeId,
+                RecipeName = recipe.RecipeName,
+                MatchScore = matchScore,
+                MissingIngredientCount = missingNames.Count,
+                MissingIngredientNames = missingNames.Take(5).ToList(),
+                Reason = $"Matched {matchedNames.Count} of {requiredIngredientNames.Count} required ingredients using local fallback.",
+                Rank = 0
+            });
+        }
+
+        var rankedItems = items
+            .OrderByDescending(item => item.MatchScore)
+            .ThenBy(item => item.MissingIngredientCount)
+            .ThenBy(item => item.RecipeName, StringComparer.OrdinalIgnoreCase)
+            .Take(Math.Max(topK, 0))
+            .ToList();
+
+        for (var index = 0; index < rankedItems.Count; index++)
+        {
+            rankedItems[index].Rank = index + 1;
+        }
+
+        return new RecommendMealResponse
+        {
+            Items = rankedItems
+        };
+    }
+
     private async Task<List<string>> GetRecipeIngredientNamesAsync(
         Guid recipeId,
         CancellationToken cancellationToken)
@@ -339,6 +473,127 @@ public class RecommendationService : IRecommendationService
                 select ingredient.Name)
             .Distinct()
             .ToListAsync(cancellationToken);
+
+    private async Task<List<MealIngredientCheckAiIngredient>> LoadRecipeIngredientItemsAsync(
+        Guid recipeId,
+        CancellationToken cancellationToken)
+        => await (
+                from recipeIngredient in _dbContext.RecipeIngredients.AsNoTracking()
+                join ingredient in _dbContext.Ingredients.AsNoTracking()
+                    on recipeIngredient.IngredientId equals ingredient.Id
+                where recipeIngredient.RecipeId == recipeId
+                    && !recipeIngredient.IsDeleted
+                    && !ingredient.IsDeleted
+                select new MealIngredientCheckAiIngredient
+                {
+                    IngredientId = ingredient.Id,
+                    Name = ingredient.Name,
+                    Quantity = recipeIngredient.Quantity,
+                    Unit = recipeIngredient.Unit
+                })
+            .ToListAsync(cancellationToken);
+
+    private async Task<List<MealIngredientCheckAiIngredient>> LoadUserPantryIngredientItemsAsync(
+        Guid userId,
+        CancellationToken cancellationToken)
+        => await (
+                from pantryItem in _dbContext.UserPantryItems.AsNoTracking()
+                join ingredient in _dbContext.Ingredients.AsNoTracking()
+                    on pantryItem.IngredientId equals ingredient.Id
+                where pantryItem.UserId == userId
+                    && !pantryItem.IsDeleted
+                    && !ingredient.IsDeleted
+                select new MealIngredientCheckAiIngredient
+                {
+                    IngredientId = ingredient.Id,
+                    Name = ingredient.Name,
+                    Quantity = pantryItem.Quantity,
+                    Unit = pantryItem.Unit
+                })
+            .ToListAsync(cancellationToken);
+
+    private static MealIngredientCheckAiIngredient ToAiIngredient(MealIngredientCheckAiIngredient item)
+        => new()
+        {
+            IngredientId = item.IngredientId,
+            Name = item.Name,
+            Quantity = item.Quantity,
+            Unit = item.Unit
+        };
+
+    private static MealIngredientCheckItem ToResponseItem(MealIngredientCheckAiIngredient item)
+        => new()
+        {
+            IngredientId = item.IngredientId ?? Guid.Empty,
+            Name = item.Name,
+            Quantity = item.Quantity,
+            Unit = item.Unit
+        };
+
+    private static MealIngredientCheckResponse BuildMealIngredientCheckResponse(
+        Recipe recipe,
+        IReadOnlyCollection<MealIngredientCheckAiIngredient> requiredIngredients,
+        IReadOnlyCollection<MealIngredientCheckAiIngredient> fridgeIngredients)
+    {
+        var fridgeIngredientIds = fridgeIngredients
+            .Where(item => item.IngredientId.HasValue && item.IngredientId.Value != Guid.Empty)
+            .Select(item => item.IngredientId!.Value)
+            .ToHashSet();
+
+        var fridgeNormalizedNames = fridgeIngredients
+            .Where(item => !string.IsNullOrWhiteSpace(item.Name))
+            .Select(item => NormalizeName(item.Name))
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var available = new List<MealIngredientCheckItem>();
+        var missing = new List<MealIngredientCheckItem>();
+
+        foreach (var ingredient in requiredIngredients)
+        {
+            var hasIngredient = ingredient.IngredientId.HasValue
+                && ingredient.IngredientId.Value != Guid.Empty
+                && fridgeIngredientIds.Contains(ingredient.IngredientId.Value);
+
+            if (!hasIngredient && !string.IsNullOrWhiteSpace(ingredient.Name))
+            {
+                hasIngredient = fridgeNormalizedNames.Contains(NormalizeName(ingredient.Name));
+            }
+
+            var item = new MealIngredientCheckItem
+            {
+                IngredientId = ingredient.IngredientId ?? Guid.Empty,
+                Name = ingredient.Name,
+                Quantity = ingredient.Quantity,
+                Unit = ingredient.Unit
+            };
+
+            if (hasIngredient)
+            {
+                available.Add(item);
+            }
+            else
+            {
+                missing.Add(item);
+            }
+        }
+
+        return new MealIngredientCheckResponse
+        {
+            MealId = recipe.Id,
+            MealName = recipe.Name,
+            AvailableIngredients = available,
+            MissingIngredients = missing,
+            Note = missing.Count == 0
+                ? "You already have all required ingredients for this meal."
+                : $"You are missing {missing.Count} ingredient(s) for this meal."
+        };
+    }
+
+    private static string NormalizeName(string value)
+        => string.IsNullOrWhiteSpace(value)
+            ? string.Empty
+            : value.Trim().ToLowerInvariant();
 
     private static List<string> SplitNames(string? value)
         => string.IsNullOrWhiteSpace(value)

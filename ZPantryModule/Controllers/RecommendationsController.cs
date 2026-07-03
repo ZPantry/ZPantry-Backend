@@ -44,6 +44,18 @@ public class RecommendationsController : ControllerBase
         return Ok(await _recommendationService.SuggestMissingIngredientsAsync(userId.Value, request));
     }
 
+    [HttpGet("meals/{mealId:guid}/missing-ingredients")]
+    public async Task<ActionResult<ApiResponse<MealIngredientCheckResponse>>> CheckMealIngredients(Guid mealId)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+        {
+            return Unauthorized(ApiResponse<MealIngredientCheckResponse>.Fail("Invalid access token.", traceId: HttpContext.TraceIdentifier));
+        }
+
+        return Ok(await _recommendationService.CheckMealIngredientsAsync(userId.Value, mealId));
+    }
+
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<ApiResponse<object>>> GetById(Guid id)
     {

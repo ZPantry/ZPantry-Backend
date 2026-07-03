@@ -43,6 +43,7 @@ internal static class ZPantryMappings
         {
             Id = pantryItem.Id,
             IngredientId = pantryItem.IngredientId,
+            IngredientName = null,
             Quantity = pantryItem.Quantity,
             Unit = pantryItem.Unit,
             ExpiredAt = pantryItem.ExpiredAt,
