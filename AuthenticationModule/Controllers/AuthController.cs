@@ -73,6 +73,25 @@ public class AuthController : ControllerBase
     }
 
     [AllowAnonymous]
+    [HttpPost("google-login")]
+    public async Task<ActionResult<ApiResponse<AuthResponse>>> GoogleLogin([FromBody] GoogleLoginRequest request)
+    {
+        try
+        {
+            var result = await _userService.GoogleLoginAsync(request);
+            return Ok(ApiResponse<AuthResponse>.SuccessResponse(result, "Đăng nhập Google thành công!", traceId: HttpContext.TraceIdentifier));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ApiResponse<AuthResponse>.Fail(ex.Message, traceId: HttpContext.TraceIdentifier));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponse<AuthResponse>.Fail(ex.Message, traceId: HttpContext.TraceIdentifier));
+        }
+    }
+
+    [AllowAnonymous]
     [HttpPost("refresh-token")]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> RefreshToken([FromBody] RefreshTokenRequest request)
     {

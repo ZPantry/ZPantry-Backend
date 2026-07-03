@@ -18,6 +18,9 @@
     "AccessTokenMinutes": 60,
     "RefreshTokenDays": 7
   },
+  "Google": {
+    "ClientId": ""
+  },
   "BootstrapAdmin": {
     "Email": "",
     "Password": "",

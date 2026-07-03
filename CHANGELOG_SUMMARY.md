@@ -10,7 +10,44 @@ Tài liệu này tổng hợp toàn bộ các thay đổi mới nhất trong h�
 
 ## 2. 🔄 Những Phần Thay Đổi (Nghiệp Vụ & API)
 
-### A. Quản Lý Người Dùng (User Management)
+### A. Đăng Nhập Bằng Tài Khoản Google (Google OAuth Authentication)
+
+> [!TIP]
+> Hệ thống tích hợp đăng nhập nhanh qua tài khoản Google bên cạnh luồng đăng ký thủ công, hỗ trợ tự động khởi tạo tài khoản và xác thực email.
+
+1. **Điều chỉnh Nghiệp vụ (Business Logic)**:
+   * **Tự động cấp tài khoản (Auto-provisioning)**: Cho phép người dùng đăng nhập bằng Google ID Token (`idToken`). Nếu email chưa tồn tại trong hệ thống, tự động tạo mới tài khoản với trạng thái `IsEmailConfirmed = true` và đồng bộ `FullName`, `AvatarUrl` từ hồ sơ Google.
+   * **Liên kết tài khoản hiện có**: Trường hợp email đã đăng ký thủ công trước đó, khi đăng nhập bằng Google thành công, hệ thống sẽ tự động xác thực email (nếu chưa xác thực) và bổ sung ảnh đại diện (nếu chưa có).
+   * **Độ tin cậy & Fallback**: Xác thực chữ ký JWT ID Token bằng SDK chuẩn (`Google.Apis.Auth`) kết hợp cơ chế HTTP fallback tới Google API (`tokeninfo`/`userinfo`).
+
+2. **Chi tiết API & Mã Nguồn**:
+   * **`POST /api/auth/google-login`** *(Quyền: Public/AllowAnonymous)*: Nhận payload DTO `{ "idToken": "<JWT_OR_ACCESS_TOKEN>" }`, trả về cặp `AccessToken` và `RefreshToken` trong hệ thống ZPantry cùng thông tin người dùng (`Id`, `Email`, `FullName`, `AvatarUrl`, `Role`).
+   * **File cấu hình & mã nguồn**: [AuthController.cs](file:///d:/Proj/ZPantry-Backend/AuthenticationModule/Controllers/AuthController.cs), [UserService.cs](file:///d:/Proj/ZPantry-Backend/AuthenticationModule/Services/Implementations/UserService.cs), [GoogleLoginRequest.cs](file:///d:/Proj/ZPantry-Backend/AuthenticationModule/DTOs/GoogleLoginRequest.cs), [GoogleSettings.cs](file:///d:/Proj/ZPantry-Backend/AuthenticationModule/DTOs/GoogleSettings.cs).
+
+3. **Hướng Dẫn Cấu Hình & Kiểm Thử (Configuration & Testing Guide)**:
+   * **Cấu hình Client ID**:
+     * Khai báo trực tiếp trong file cấu hình [authenticationconfig.json](file:///d:/Proj/ZPantry-Backend/AuthenticationModule/authenticationconfig.json):
+       ```json
+       "Google": {
+         "ClientId": "<YOUR_GOOGLE_CLIENT_ID>.apps.googleusercontent.com"
+       }
+       ```
+     * Hoặc truyền qua biến môi trường Docker trong file [.env](file:///d:/Proj/ZPantry-Backend/.env):
+       ```env
+       Google__ClientId=<YOUR_GOOGLE_CLIENT_ID>.apps.googleusercontent.com
+       ```
+     * *(Lưu ý: Ngay cả khi tạm thời để trống `ClientId` lúc thử nghiệm ở môi trường dev, cơ chế xác thực vẫn linh hoạt hỗ trợ HTTP fallback giúp kiểm thử liền mạch mà không bị gián đoạn)*.
+   * **Hướng dẫn test API qua Google OAuth 2.0 Playground**:
+     1. Truy cập [Google OAuth 2.0 Playground](https://developers.google.com/oauthplayground/).
+     2. Tại mục **Step 1**, dán chuỗi scopes sau vào ô *"Input your own scopes"* ở dưới cùng rồi bấm **Authorize APIs**:
+        `https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile openid`
+     3. Đăng nhập bằng tài khoản Gmail và nhấn **Continue / Đồng ý**.
+     4. Tại mục **Step 2 (Exchange authorization code for tokens)**, bấm nút xanh dương **Exchange authorization code for tokens**.
+     5. Copy chuỗi trong ô **`id_token`** (hoặc `Access token`), mở Swagger UI tại `http://localhost:8080/swagger`, gọi endpoint `POST /api/auth/google-login` với body `{ "idToken": "<chuỗi_token>" }` để xác thực.
+
+---
+
+### B. Quản Lý Người Dùng (User Management)
 
 > [!IMPORTANT]
 > Nghiệp vụ được tái cấu trúc để đảm bảo tính riêng tư dữ liệu và phân chia quyền hạn rõ ràng giữa Quản trị viên (Admin) và Người dùng sở hữu tài khoản (Account Owner).

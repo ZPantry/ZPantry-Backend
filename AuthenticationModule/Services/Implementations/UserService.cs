@@ -3,10 +3,12 @@ using AuthenticationModule.DTOs;
 using AuthenticationModule.Repositories.Entities;
 using AuthenticationModule.Repositories.Interfaces;
 using AuthenticationModule.Services.Interfaces;
+using Google.Apis.Auth;
 using Microsoft.AspNet.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -19,17 +21,23 @@ public class UserService : IUserService
     private readonly IEmailService _emailService;
     private readonly ITokenBlacklistService _tokenBlacklistService;
     private readonly JwtSettings _jwtSettings;
+    private readonly GoogleSettings _googleSettings;
+    private readonly IHttpClientFactory _httpClientFactory;
 
     public UserService(
         IUserRepository userRepository,
         IEmailService emailService,
         ITokenBlacklistService tokenBlacklistService,
-        IOptions<JwtSettings> jwtSettings)
+        IOptions<JwtSettings> jwtSettings,
+        IOptions<GoogleSettings> googleSettings,
+        IHttpClientFactory httpClientFactory)
     {
         _userRepository = userRepository;
         _emailService = emailService;
         _tokenBlacklistService = tokenBlacklistService;
         _jwtSettings = jwtSettings.Value;
+        _googleSettings = googleSettings.Value;
+        _httpClientFactory = httpClientFactory;
     }
 
     public async Task AddUser(RegisterRequest request)
@@ -133,6 +141,122 @@ public class UserService : IUserService
         return await IssueTokensAsync(user, rotateRefreshToken: true);
     }
 
+    public async Task<AuthResponse> GoogleLoginAsync(GoogleLoginRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.IdToken))
+        {
+            throw new UnauthorizedAccessException("Google ID token is required.");
+        }
+
+        string email;
+        string? fullName = null;
+        string? avatarUrl = null;
+
+        try
+        {
+            var validationSettings = new GoogleJsonWebSignature.ValidationSettings();
+            if (!string.IsNullOrWhiteSpace(_googleSettings.ClientId))
+            {
+                validationSettings.Audience = new[] { _googleSettings.ClientId };
+            }
+
+            var payload = await GoogleJsonWebSignature.ValidateAsync(request.IdToken, validationSettings);
+            email = payload.Email;
+            fullName = payload.Name;
+            avatarUrl = payload.Picture;
+        }
+        catch
+        {
+            try
+            {
+                var client = _httpClientFactory.CreateClient();
+                var tokenInfoResponse = await client.GetAsync($"https://oauth2.googleapis.com/tokeninfo?id_token={Uri.EscapeDataString(request.IdToken)}");
+                if (tokenInfoResponse.IsSuccessStatusCode)
+                {
+                    var content = await tokenInfoResponse.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+                    email = content.GetProperty("email").GetString()!;
+                    if (content.TryGetProperty("name", out var nameProp)) fullName = nameProp.GetString();
+                    if (content.TryGetProperty("picture", out var picProp)) avatarUrl = picProp.GetString();
+                }
+                else
+                {
+                    using var userInfoRequest = new HttpRequestMessage(HttpMethod.Get, "https://www.googleapis.com/oauth2/v3/userinfo");
+                    userInfoRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", request.IdToken);
+                    var userInfoResponse = await client.SendAsync(userInfoRequest);
+                    if (!userInfoResponse.IsSuccessStatusCode)
+                    {
+                        throw new UnauthorizedAccessException("Invalid Google authentication token.");
+                    }
+                    var content = await userInfoResponse.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+                    email = content.GetProperty("email").GetString()!;
+                    if (content.TryGetProperty("name", out var nameProp)) fullName = nameProp.GetString();
+                    if (content.TryGetProperty("picture", out var picProp)) avatarUrl = picProp.GetString();
+                }
+            }
+            catch
+            {
+                throw new UnauthorizedAccessException("Invalid Google authentication token.");
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            throw new UnauthorizedAccessException("Could not retrieve email from Google token.");
+        }
+
+        var user = await _userRepository.GetUserByEmail(email);
+        if (user == null)
+        {
+            user = new User
+            {
+                FullName = !string.IsNullOrWhiteSpace(fullName) ? fullName : email.Split('@')[0],
+                Email = email,
+                AvatarUrl = avatarUrl,
+                PasswordHashed = new PasswordHasher().HashPassword(Guid.NewGuid().ToString("N")),
+                CreatedAt = DateTime.UtcNow,
+                IsEmailConfirmed = true,
+                IsActive = true,
+                Role = "user"
+            };
+
+            await _userRepository.AddUser(user);
+        }
+        else
+        {
+            if (!user.IsActive)
+            {
+                throw new UnauthorizedAccessException("Account is inactive.");
+            }
+
+            bool updated = false;
+            if (!user.IsEmailConfirmed)
+            {
+                user.IsEmailConfirmed = true;
+                updated = true;
+            }
+
+            if (string.IsNullOrWhiteSpace(user.AvatarUrl) && !string.IsNullOrWhiteSpace(avatarUrl))
+            {
+                user.AvatarUrl = avatarUrl;
+                updated = true;
+            }
+
+            if (string.IsNullOrWhiteSpace(user.FullName) && !string.IsNullOrWhiteSpace(fullName))
+            {
+                user.FullName = fullName;
+                updated = true;
+            }
+
+            if (updated)
+            {
+                user.UpdatedAt = DateTime.UtcNow;
+                await _userRepository.UpdateUser(user);
+            }
+        }
+
+        return await IssueTokensAsync(user, rotateRefreshToken: true);
+    }
+
     public async Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.RefreshToken))
@@ -222,10 +346,12 @@ public class UserService : IUserService
 
         return new AuthResponse
         {
+            Id = user.Id,
             AccessToken = accessToken,
             ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenMinutes),
             FullName = user.FullName ?? string.Empty,
             Email = user.Email,
+            AvatarUrl = user.AvatarUrl,
             RefreshToken = refreshToken,
             Role = user.Role
         };

@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16
+    image: pgvector/pgvector:pg16
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-zpantry}
       POSTGRES_USER: ${POSTGRES_USER:-zpantry}
@@ -24,7 +24,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://0.0.0.0:8080
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=zpantry;Username=zpantry;Password=password
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${POSTGRES_DB:-zpantry};Username=${POSTGRES_USER:-zpantry};Password=${POSTGRES_PASSWORD:-change-me}
     ports:
       - "8080:8080"
     depends_on:

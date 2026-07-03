@@ -1,4 +1,4 @@
-﻿using AuthenticationModule.Controllers;
+using AuthenticationModule.Controllers;
 using AuthenticationModule.DTOs;
 using AuthenticationModule.Repositories.Entities;
 using AuthenticationModule.Repositories.Implementations;
@@ -30,6 +30,11 @@ builder.Services.Configure<EmailSettings>(
 
 builder.Services.Configure<JwtSettings>(
     builder.Configuration.GetSection("Jwt"));
+
+builder.Services.Configure<GoogleSettings>(
+    builder.Configuration.GetSection("Google"));
+
+builder.Services.AddHttpClient();
 
 builder.Services.AddDbContext<ZpantryDbContext>(options =>
     options.UseNpgsql(
