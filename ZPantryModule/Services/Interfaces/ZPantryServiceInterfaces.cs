@@ -82,6 +82,13 @@ public interface IVectorSearchService
     Task<IReadOnlyList<object>> FindSimilarIngredientsAsync(float[] embedding, int topK, CancellationToken cancellationToken = default);
 }
 
+public sealed record EmbeddingBackfillResult(int IngredientsUpdated, int RecipesUpdated, int FailedCount);
+
+public interface IEmbeddingBackfillService
+{
+    Task<EmbeddingBackfillResult> ReembedExistingDataAsync(CancellationToken cancellationToken = default);
+}
+
 public interface ITodayMenuService
 {
     Task<PagedResponse<TodayMenuItemDto>> GetByUserAndDateAsync(

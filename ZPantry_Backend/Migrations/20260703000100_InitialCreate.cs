@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace AuthenticationModule.Repositories.Entities.Migrations;
+namespace ZPantry_Backend.Migrations;
 
 [DbContext(typeof(ZpantryDbContext))]
 [Migration("20260703000100_InitialCreate")]

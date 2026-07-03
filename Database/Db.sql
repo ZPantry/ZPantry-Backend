@@ -27,6 +27,7 @@ ALTER DATABASE "ZPantryDb" SET standard_conforming_strings TO on;
 
 -- Enable extension for UUID generation functions
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE EXTENSION IF NOT EXISTS vector;
 
 -- =========================================================================================
 -- 2. TABLE CREATION: public."users"

@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Pgvector.EntityFrameworkCore;
 using ZPantryModule.Controllers;
 using ZPantryModule.Services.Implementations;
 using ZPantryModule.Services.Interfaces;
@@ -30,7 +31,11 @@ builder.Services.Configure<JwtSettings>(
     builder.Configuration.GetSection("Jwt"));
 
 builder.Services.AddDbContext<ZpantryDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"), o =>
+    {
+        o.UseVector();
+        o.MigrationsAssembly("ZPantry_Backend");
+    })
         .UseSnakeCaseNamingConvention());
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -44,6 +49,7 @@ builder.Services.AddScoped<ITodayMenuService, TodayMenuService>();
 builder.Services.AddScoped<IRecommendationService, RecommendationService>();
 builder.Services.AddScoped<ICloudinaryStorageService, CloudinaryStorageService>();
 builder.Services.AddScoped<IVectorSearchService, VectorSearchService>();
+builder.Services.AddScoped<IEmbeddingBackfillService, EmbeddingBackfillService>();
 builder.Services.AddHttpClient<IAIRecommendationClient, AIRecommendationClient>((serviceProvider, client) =>
 {
     var configuration = serviceProvider.GetRequiredService<IConfiguration>();
@@ -176,6 +182,7 @@ using (var scope = app.Services.CreateScope())
     await dbContext.Database.MigrateAsync();
 }
 
+await RunEmbeddingBackfillAsync(app.Services, builder.Configuration);
 await EnsureDemoAccountsAsync(app.Services, builder.Configuration);
 
 app.UseSwagger();
@@ -240,5 +247,33 @@ static async Task EnsureDemoAccountsAsync(IServiceProvider services, IConfigurat
         };
 
         await userRepository.AddUser(user);
+    }
+}
+
+static async Task RunEmbeddingBackfillAsync(IServiceProvider services, IConfiguration configuration)
+{
+    var enabled = bool.TryParse(configuration["BootstrapReembedEmbeddingsEnabled"], out var shouldRun)
+        && shouldRun;
+    if (!enabled)
+    {
+        return;
+    }
+
+    using var scope = services.CreateScope();
+    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("EmbeddingBackfill");
+    var backfillService = scope.ServiceProvider.GetRequiredService<IEmbeddingBackfillService>();
+
+    logger.LogInformation("Bootstrap embedding backfill is enabled.");
+    var result = await backfillService.ReembedExistingDataAsync();
+    logger.LogInformation(
+        "Bootstrap embedding backfill completed. Ingredients updated: {IngredientsUpdated}, recipes updated: {RecipesUpdated}, failed: {FailedCount}.",
+        result.IngredientsUpdated,
+        result.RecipesUpdated,
+        result.FailedCount);
+
+    if (result.FailedCount > 0)
+    {
+        throw new InvalidOperationException(
+            $"Embedding backfill completed with {result.FailedCount} failures. Check AI service and rerun with BootstrapReembedEmbeddingsEnabled=true.");
     }
 }

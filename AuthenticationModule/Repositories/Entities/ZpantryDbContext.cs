@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Pgvector.EntityFrameworkCore;
 
 namespace AuthenticationModule.Repositories.Entities;
 
@@ -53,13 +54,20 @@ public partial class ZpantryDbContext : DbContext
             var strConn = config["ConnectionStrings:DefaultConnection"];
             if (!string.IsNullOrEmpty(strConn))
             {
-                optionsBuilder.UseNpgsql(strConn).UseSnakeCaseNamingConvention();
+                optionsBuilder.UseNpgsql(strConn, o =>
+                {
+                    o.UseVector();
+                    o.MigrationsAssembly("ZPantry_Backend");
+                })
+                    .UseSnakeCaseNamingConvention();
             }
         }
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.HasPostgresExtension("vector");
+
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -87,6 +95,7 @@ public partial class ZpantryDbContext : DbContext
             entity.Property(e => e.ImageUrl).HasMaxLength(500);
             entity.Property(e => e.GradientFrom).HasMaxLength(32);
             entity.Property(e => e.GradientTo).HasMaxLength(32);
+            entity.Property(e => e.Embedding).HasColumnType("vector(1536)");
         });
 
         modelBuilder.Entity<IngredientAlias>(entity =>
@@ -107,6 +116,7 @@ public partial class ZpantryDbContext : DbContext
             entity.Property(e => e.SourceType).HasMaxLength(100);
             entity.Property(e => e.GradientFrom).HasMaxLength(32);
             entity.Property(e => e.GradientTo).HasMaxLength(32);
+            entity.Property(e => e.Embedding).HasColumnType("vector(1536)");
         });
 
         modelBuilder.Entity<RecipeIngredient>(entity =>
