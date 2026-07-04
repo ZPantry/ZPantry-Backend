@@ -2,7 +2,6 @@ using AuthenticationModule.DTOs;
 using AuthenticationModule.Repositories.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Pgvector;
 using ZPantryModule.Services.Interfaces;
 
 namespace ZPantryModule.Services.Implementations;
@@ -49,28 +48,7 @@ public sealed class EmbeddingBackfillService : IEmbeddingBackfillService
 
     private async Task EnsureEmbeddingSchemaAsync(CancellationToken cancellationToken)
     {
-        await _dbContext.Database.ExecuteSqlRawAsync(
-            "CREATE EXTENSION IF NOT EXISTS vector;",
-            Array.Empty<object>(),
-            cancellationToken);
-
-        await _dbContext.Database.ExecuteSqlRawAsync(
-            """
-            ALTER TABLE ingredients
-                ALTER COLUMN embedding TYPE vector(1536)
-                USING NULL::vector(1536);
-            """,
-            Array.Empty<object>(),
-            cancellationToken);
-
-        await _dbContext.Database.ExecuteSqlRawAsync(
-            """
-            ALTER TABLE recipes
-                ALTER COLUMN embedding TYPE vector(1536)
-                USING NULL::vector(1536);
-            """,
-            Array.Empty<object>(),
-            cancellationToken);
+        await Task.CompletedTask;
     }
 
     private async Task<EmbeddingBatchResult> ReembedIngredientsAsync(CancellationToken cancellationToken)
@@ -206,9 +184,9 @@ public sealed class EmbeddingBackfillService : IEmbeddingBackfillService
         IReadOnlyCollection<float>? values,
         string entityName,
         Guid entityId,
-        out Vector embedding)
+        out float[] embedding)
     {
-        embedding = default!;
+        embedding = [];
 
         if (!success || values is null || values.Count != ExpectedDimension)
         {
@@ -220,7 +198,7 @@ public sealed class EmbeddingBackfillService : IEmbeddingBackfillService
             return false;
         }
 
-        embedding = new Vector(values.ToArray());
+        embedding = values.ToArray();
         return true;
     }
 

@@ -30,6 +30,8 @@ public class AiCandidateRecipeItem
 
     public string RecipeName { get; set; } = string.Empty;
 
+    public string? ImageUrl { get; set; }
+
     public List<string> IngredientNames { get; set; } = [];
 
     public string? InstructionText { get; set; }

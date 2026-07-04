@@ -35,6 +35,8 @@ public class RecommendMealResponseItem
 
     public string RecipeName { get; set; } = string.Empty;
 
+    public string? ImageUrl { get; set; }
+
     public decimal MatchScore { get; set; }
 
     public int MissingIngredientCount { get; set; }

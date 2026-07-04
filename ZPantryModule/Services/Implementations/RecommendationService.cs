@@ -60,6 +60,7 @@ public class RecommendationService : IRecommendationService
                     {
                         RecipeId = item.RecipeId,
                         RecipeName = item.RecipeName,
+                        ImageUrl = candidateRecipes.FirstOrDefault(recipe => recipe.RecipeId == item.RecipeId)?.ImageUrl,
                         MatchScore = item.MatchScore,
                         MissingIngredientCount = item.MissingIngredientCount,
                         MissingIngredientNames = item.MissingIngredientNames,
@@ -88,6 +89,8 @@ public class RecommendationService : IRecommendationService
 
         foreach (var item in response.Items)
         {
+            var candidateRecipe = candidateRecipes.FirstOrDefault(recipe => recipe.RecipeId == item.RecipeId);
+
             _dbContext.MealRecommendationItems.Add(new MealRecommendationItem
             {
                 MealRecommendationId = recommendation.Id,
@@ -98,6 +101,8 @@ public class RecommendationService : IRecommendationService
                 Reason = item.Reason,
                 Rank = item.Rank
             });
+
+            item.ImageUrl ??= candidateRecipe?.ImageUrl;
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -260,6 +265,11 @@ public class RecommendationService : IRecommendationService
             .OrderBy(item => item.Rank)
             .ToListAsync(cancellationToken);
 
+        var recipeImageUrls = await _dbContext.Recipes
+            .AsNoTracking()
+            .Where(recipe => recommendationItems.Select(item => item.RecipeId).Contains(recipe.Id))
+            .ToDictionaryAsync(recipe => recipe.Id, recipe => recipe.ImageUrl, cancellationToken);
+
         return ApiResponse<object>.SuccessResponse(new
         {
             recommendation.Id,
@@ -271,6 +281,7 @@ public class RecommendationService : IRecommendationService
             {
                 item.Id,
                 item.RecipeId,
+                ImageUrl = recipeImageUrls.GetValueOrDefault(item.RecipeId),
                 item.MatchScore,
                 item.MissingIngredientCount,
                 MissingIngredientNames = SplitNames(item.MissingIngredientNames),
@@ -369,6 +380,7 @@ public class RecommendationService : IRecommendationService
             {
                 RecipeId = recipe.Id,
                 RecipeName = recipe.Name,
+                ImageUrl = recipe.ImageUrl,
                 IngredientNames = await GetRecipeIngredientNamesAsync(recipe.Id, cancellationToken),
                 InstructionText = recipe.InstructionText
             });
@@ -434,6 +446,7 @@ public class RecommendationService : IRecommendationService
             {
                 RecipeId = recipe.RecipeId,
                 RecipeName = recipe.RecipeName,
+                ImageUrl = recipe.ImageUrl,
                 MatchScore = matchScore,
                 MissingIngredientCount = missingNames.Count,
                 MissingIngredientNames = missingNames.Take(5).ToList(),

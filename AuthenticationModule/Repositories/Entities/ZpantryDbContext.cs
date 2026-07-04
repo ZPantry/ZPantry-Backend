@@ -58,8 +58,7 @@ public partial class ZpantryDbContext : DbContext
                 {
                     o.UseVector();
                     o.MigrationsAssembly("ZPantry_Backend");
-                })
-                    .UseSnakeCaseNamingConvention();
+                });
             }
         }
     }
@@ -95,7 +94,7 @@ public partial class ZpantryDbContext : DbContext
             entity.Property(e => e.ImageUrl).HasMaxLength(500);
             entity.Property(e => e.GradientFrom).HasMaxLength(32);
             entity.Property(e => e.GradientTo).HasMaxLength(32);
-            entity.Property(e => e.Embedding).HasColumnType("vector(1536)");
+            entity.Property(e => e.Embedding).HasColumnType("real[]");
         });
 
         modelBuilder.Entity<IngredientAlias>(entity =>
@@ -116,7 +115,7 @@ public partial class ZpantryDbContext : DbContext
             entity.Property(e => e.SourceType).HasMaxLength(100);
             entity.Property(e => e.GradientFrom).HasMaxLength(32);
             entity.Property(e => e.GradientTo).HasMaxLength(32);
-            entity.Property(e => e.Embedding).HasColumnType("vector(1536)");
+            entity.Property(e => e.Embedding).HasColumnType("real[]");
         });
 
         modelBuilder.Entity<RecipeIngredient>(entity =>

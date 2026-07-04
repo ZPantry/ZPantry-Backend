@@ -3,7 +3,6 @@ using AuthenticationModule.DTOs;
 using AuthenticationModule.Repositories.Entities;
 using ZPantryModule.DTOs;
 using Microsoft.EntityFrameworkCore;
-using Pgvector;
 using ZPantryModule.Services.Interfaces;
 
 namespace ZPantryModule.Services.Implementations;
@@ -105,7 +104,7 @@ public class IngredientService : IIngredientService
 
         if (embeddingResponse.Success && embeddingResponse.Data?.Embedding.Count > 0)
         {
-            ingredient.Embedding = new Vector(embeddingResponse.Data.Embedding.ToArray());
+            ingredient.Embedding = embeddingResponse.Data.Embedding.ToArray();
         }
 
         _dbContext.Ingredients.Add(ingredient);
@@ -160,7 +159,7 @@ public class IngredientService : IIngredientService
 
         if (embeddingResponse.Success && embeddingResponse.Data?.Embedding.Count > 0)
         {
-            ingredient.Embedding = new Vector(embeddingResponse.Data.Embedding.ToArray());
+            ingredient.Embedding = embeddingResponse.Data.Embedding.ToArray();
         }
 
         _dbContext.Ingredients.Add(ingredient);
@@ -266,7 +265,7 @@ public class IngredientService : IIngredientService
 
         if (embeddingResponse.Success && embeddingResponse.Data?.Embedding.Count > 0)
         {
-            ingredient.Embedding = new Vector(embeddingResponse.Data.Embedding.ToArray());
+            ingredient.Embedding = embeddingResponse.Data.Embedding.ToArray();
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -382,7 +381,7 @@ public class IngredientService : IIngredientService
 
         if (embeddingResponse.Success && embeddingResponse.Data?.Embedding.Count > 0)
         {
-            ingredient.Embedding = new Vector(embeddingResponse.Data.Embedding.ToArray());
+            ingredient.Embedding = embeddingResponse.Data.Embedding.ToArray();
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
 

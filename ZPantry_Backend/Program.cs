@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Npgsql;
 using Pgvector.EntityFrameworkCore;
 using ZPantryModule.Controllers;
 using ZPantryModule.Services.Implementations;
@@ -35,8 +36,7 @@ builder.Services.AddDbContext<ZpantryDbContext>(options =>
     {
         o.UseVector();
         o.MigrationsAssembly("ZPantry_Backend");
-    })
-        .UseSnakeCaseNamingConvention());
+    }));
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
@@ -252,6 +252,9 @@ static async Task EnsureDemoAccountsAsync(IServiceProvider services, IConfigurat
 
 static async Task ApplyDatabaseSchemaAsync(ZpantryDbContext dbContext, IConfiguration configuration)
 {
+    await EnsureTargetDatabaseExistsAsync(configuration);
+    await EnsureLegacyMigrationsHistoryCompatibilityAsync(dbContext);
+
     var schemaMode = (configuration["Database:SchemaMode"]
         ?? configuration["Database__SchemaMode"]
         ?? "update")
@@ -276,6 +279,109 @@ static async Task ApplyDatabaseSchemaAsync(ZpantryDbContext dbContext, IConfigur
             throw new InvalidOperationException(
                 $"Unsupported Database:SchemaMode value '{schemaMode}'. Use 'update' or 'create-drop'.");
     }
+}
+
+static async Task EnsureLegacyMigrationsHistoryCompatibilityAsync(ZpantryDbContext dbContext)
+{
+    var hasLegacyMigrationIdColumn = await ColumnExistsAsync(dbContext, "__EFMigrationsHistory", "migration_id");
+
+    if (hasLegacyMigrationIdColumn)
+    {
+        await dbContext.Database.ExecuteSqlRawAsync(
+            """
+            ALTER TABLE "__EFMigrationsHistory"
+                RENAME COLUMN migration_id TO "MigrationId";
+            """);
+    }
+
+    var hasLegacyProductVersionColumn = await ColumnExistsAsync(dbContext, "__EFMigrationsHistory", "product_version");
+
+    if (hasLegacyProductVersionColumn)
+    {
+        await dbContext.Database.ExecuteSqlRawAsync(
+            """
+            ALTER TABLE "__EFMigrationsHistory"
+                RENAME COLUMN product_version TO "ProductVersion";
+            """);
+    }
+}
+
+static async Task<bool> ColumnExistsAsync(ZpantryDbContext dbContext, string tableName, string columnName)
+{
+    var connection = (NpgsqlConnection)dbContext.Database.GetDbConnection();
+    var wasClosed = connection.State != System.Data.ConnectionState.Open;
+
+    if (wasClosed)
+    {
+        await connection.OpenAsync();
+    }
+
+    try
+    {
+        await using var command = new NpgsqlCommand(
+            """
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_schema = current_schema()
+              AND table_name = @table_name
+              AND column_name = @column_name
+            LIMIT 1
+            """,
+            connection);
+
+        command.Parameters.AddWithValue("table_name", tableName);
+        command.Parameters.AddWithValue("column_name", columnName);
+
+        var result = await command.ExecuteScalarAsync();
+        return result is not null;
+    }
+    finally
+    {
+        if (wasClosed)
+        {
+            await connection.CloseAsync();
+        }
+    }
+}
+
+static async Task EnsureTargetDatabaseExistsAsync(IConfiguration configuration)
+{
+    var connectionString = configuration.GetConnectionString("DefaultConnection");
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        throw new InvalidOperationException("ConnectionStrings:DefaultConnection is missing.");
+    }
+
+    var builder = new NpgsqlConnectionStringBuilder(connectionString);
+    var databaseName = builder.Database;
+    if (string.IsNullOrWhiteSpace(databaseName))
+    {
+        throw new InvalidOperationException("ConnectionStrings:DefaultConnection does not specify a database name.");
+    }
+
+    var adminBuilder = new NpgsqlConnectionStringBuilder(connectionString)
+    {
+        Database = "postgres"
+    };
+
+    await using var connection = new NpgsqlConnection(adminBuilder.ConnectionString);
+    await connection.OpenAsync();
+
+    await using var checkCommand = new NpgsqlCommand(
+        "SELECT 1 FROM pg_database WHERE datname = @db_name",
+        connection);
+    checkCommand.Parameters.AddWithValue("db_name", databaseName);
+
+    var exists = await checkCommand.ExecuteScalarAsync();
+    if (exists is not null)
+    {
+        return;
+    }
+
+    await using var createCommand = new NpgsqlCommand(
+        $"CREATE DATABASE \"{databaseName.Replace("\"", "\"\"")}\";",
+        connection);
+    await createCommand.ExecuteNonQueryAsync();
 }
 
 static async Task RunEmbeddingBackfillAsync(IServiceProvider services, IConfiguration configuration)
