@@ -36,7 +36,8 @@ builder.Services.AddDbContext<ZpantryDbContext>(options =>
     {
         o.UseVector();
         o.MigrationsAssembly("ZPantry_Backend");
-    }));
+    })
+    .UseSnakeCaseNamingConvention());
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();

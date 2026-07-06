@@ -58,7 +58,7 @@ public partial class ZpantryDbContext : DbContext
                 {
                     o.UseVector();
                     o.MigrationsAssembly("ZPantry_Backend");
-                });
+                }).UseSnakeCaseNamingConvention();
             }
         }
     }
