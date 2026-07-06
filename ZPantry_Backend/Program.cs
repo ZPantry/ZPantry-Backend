@@ -197,8 +197,8 @@ if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ASPNETCORE_HT
     app.UseHttpsRedirection();
 }
 
-app.UseCors("AllowAll");
 app.UseRouting();
+app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
