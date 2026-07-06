@@ -2,6 +2,7 @@ using AuthenticationModule.DTOs;
 using AuthenticationModule.Repositories.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Pgvector;
 using ZPantryModule.Services.Interfaces;
 
 namespace ZPantryModule.Services.Implementations;
@@ -184,9 +185,9 @@ public sealed class EmbeddingBackfillService : IEmbeddingBackfillService
         IReadOnlyCollection<float>? values,
         string entityName,
         Guid entityId,
-        out float[] embedding)
+        out Vector embedding)
     {
-        embedding = [];
+        embedding = new Vector(Array.Empty<float>());
 
         if (!success || values is null || values.Count != ExpectedDimension)
         {
@@ -198,7 +199,7 @@ public sealed class EmbeddingBackfillService : IEmbeddingBackfillService
             return false;
         }
 
-        embedding = values.ToArray();
+        embedding = new Vector(values.ToArray());
         return true;
     }
 

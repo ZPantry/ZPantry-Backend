@@ -1,3 +1,5 @@
+using Pgvector;
+
 namespace AuthenticationModule.Repositories.Entities;
 
 public partial class Recipe : BaseEntity
@@ -22,5 +24,5 @@ public partial class Recipe : BaseEntity
 
     public string? GradientTo { get; set; }
 
-    public float[]? Embedding { get; set; }
+    public Vector? Embedding { get; set; }
 }
