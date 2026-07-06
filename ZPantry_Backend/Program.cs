@@ -284,25 +284,27 @@ static async Task ApplyDatabaseSchemaAsync(ZpantryDbContext dbContext, IConfigur
 
 static async Task EnsureLegacyMigrationsHistoryCompatibilityAsync(ZpantryDbContext dbContext)
 {
-    var hasLegacyMigrationIdColumn = await ColumnExistsAsync(dbContext, "__EFMigrationsHistory", "migration_id");
+    var hasCamelCaseMigrationIdColumn = await ColumnExistsAsync(dbContext, "__EFMigrationsHistory", "MigrationId");
+    var hasSnakeCaseMigrationIdColumn = await ColumnExistsAsync(dbContext, "__EFMigrationsHistory", "migration_id");
 
-    if (hasLegacyMigrationIdColumn)
+    if (hasCamelCaseMigrationIdColumn && !hasSnakeCaseMigrationIdColumn)
     {
         await dbContext.Database.ExecuteSqlRawAsync(
             """
             ALTER TABLE "__EFMigrationsHistory"
-                RENAME COLUMN migration_id TO "MigrationId";
+                RENAME COLUMN "MigrationId" TO migration_id;
             """);
     }
 
-    var hasLegacyProductVersionColumn = await ColumnExistsAsync(dbContext, "__EFMigrationsHistory", "product_version");
+    var hasCamelCaseProductVersionColumn = await ColumnExistsAsync(dbContext, "__EFMigrationsHistory", "ProductVersion");
+    var hasSnakeCaseProductVersionColumn = await ColumnExistsAsync(dbContext, "__EFMigrationsHistory", "product_version");
 
-    if (hasLegacyProductVersionColumn)
+    if (hasCamelCaseProductVersionColumn && !hasSnakeCaseProductVersionColumn)
     {
         await dbContext.Database.ExecuteSqlRawAsync(
             """
             ALTER TABLE "__EFMigrationsHistory"
-                RENAME COLUMN product_version TO "ProductVersion";
+                RENAME COLUMN "ProductVersion" TO product_version;
             """);
     }
 }
