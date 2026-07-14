@@ -4,10 +4,10 @@
   },
   "EmailSettings": "Gmail",
   "Gmail": {
-    "EmailAddress": "zpantry2026@gmail.com",
+    "EmailAddress": "onboarding@resend.dev",
     "DisplayName": "ZPantry",
-    "Password": "lisjvxzuujrwensm",
-    "Host": "smtp.gmail.com",
+    "Password": "re_9RQX4szF_GuprTqEiDCJAMB3bT2FiCtJZ",
+    "Host": "resend.dev",
     "Port": 587,
     "EnableSSL": true
   },

@@ -40,8 +40,9 @@ public class UserService : IUserService
             throw new Exception("Email already exists.");
         }
 
-        var generatedOtp = Random.Shared.Next(100000, 999999).ToString();
-        var otpExpiry = DateTime.UtcNow.AddMinutes(5);
+        // [Obsolete OTP & Email Verification code]
+        // var generatedOtp = Random.Shared.Next(100000, 999999).ToString();
+        // var otpExpiry = DateTime.UtcNow.AddMinutes(5);
 
         var user = new User
         {
@@ -50,14 +51,18 @@ public class UserService : IUserService
             PasswordHashed = new PasswordHasher().HashPassword(request.Password),
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = null,
-            OtpCode = generatedOtp,
-            OtpExpiredAt = otpExpiry,
+            // OtpCode = generatedOtp,
+            // OtpExpiredAt = otpExpiry,
+            OtpCode = null,
+            OtpExpiredAt = null,
             OtpRetryCount = 0,
-            IsEmailConfirmed = false,
+            // IsEmailConfirmed = false,
+            IsEmailConfirmed = true, // Tạm thời kích hoạt ngay không cần xác thực qua mail
             IsActive = true,
             Role = "user"
         };
 
+        /*
         var subject = $"[{generatedOtp}] ZPantry account verification code";
         var htmlBody = $@"
             <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>
@@ -80,10 +85,12 @@ public class UserService : IUserService
         {
             throw new Exception($"Could not send OTP email. Details: {ex.Message}");
         }
+        */
 
         await _userRepository.AddUser(user);
     }
 
+    [Obsolete("Tính năng xác thực OTP qua email tạm thời không sử dụng theo quyết định của nhóm.")]
     public async Task<bool> VerifyOtp(string email, string otpCode)
     {
         var user = await _userRepository.GetUserByEmail(email);
@@ -119,10 +126,10 @@ public class UserService : IUserService
             throw new UnauthorizedAccessException("Account is inactive.");
         }
 
-        if (!user.IsEmailConfirmed)
-        {
-            throw new UnauthorizedAccessException("Account is not verified yet.");
-        }
+        // if (!user.IsEmailConfirmed)
+        // {
+        //     throw new UnauthorizedAccessException("Account is not verified yet.");
+        // }
 
         var verifyResult = new PasswordHasher().VerifyHashedPassword(user.PasswordHashed, request.Password);
         if (verifyResult == PasswordVerificationResult.Failed)
@@ -147,7 +154,8 @@ public class UserService : IUserService
             throw new UnauthorizedAccessException("Invalid refresh token.");
         }
 
-        if (!user.IsActive || !user.IsEmailConfirmed)
+        // if (!user.IsActive || !user.IsEmailConfirmed)
+        if (!user.IsActive)
         {
             throw new UnauthorizedAccessException("Account is not allowed to refresh token.");
         }

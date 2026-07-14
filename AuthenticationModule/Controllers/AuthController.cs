@@ -26,7 +26,8 @@ public class AuthController : ControllerBase
             await _userService.AddUser(request);
             return Ok(ApiResponse<object>.SuccessResponse(
                 null,
-                "Đăng ký thành công! Vui lòng kiểm tra Gmail để nhận mã OTP xác thực.",
+                // "Đăng ký thành công! Vui lòng kiểm tra Gmail để nhận mã OTP xác thực.",
+                "Đăng ký tài khoản thành công!",
                 HttpContext.TraceIdentifier));
         }
         catch (Exception ex)
@@ -35,6 +36,7 @@ public class AuthController : ControllerBase
         }
     }
 
+    [Obsolete("API xác thực OTP tạm thời không sử dụng theo quyết định của nhóm.")]
     [AllowAnonymous]
     [HttpPost("verify-otp")]
     public async Task<ActionResult<ApiResponse<object>>> VerifyOtp([FromBody] VerifyRequest request)
